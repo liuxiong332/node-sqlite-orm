@@ -1,0 +1,42 @@
+{
+  "name": "sqlite-orm",
+  "description": "the ORM framework for sqlite",
+  "version": "0.0.0",
+  "homepage": "https://github.com/liuxiong332/sqlite-orm",
+  "bugs": "https://github.com/liuxiong332/sqlite-orm/issues",
+  "license": "MIT",
+  "main": "dist/sqlite-orm.js",
+  "author": {
+    "name": "liuxiong",
+    "email": "liuxiong332@163.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/liuxiong332/sqlite-orm"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords":[],
+  "dependencies": {},
+  "devDependencies": {
+    "gulp": "^3.8.8",
+    "gulp-util": "^3.0.1",
+    "gulp-bump": "^0.1.11",
+    "gulp-coffeelint": "^0.4.0",
+    "gulp-mocha": "^1.1.0",
+    "gulp-coffee-istanbul": "^0.7.0",
+    "coveralls": "^2.11.1",
+    "should": "^4.0.4",
+    "gulp-coffee": "^2.3.1",
+    "gulp-load-plugins": "^0.6.0",
+    "gulp-plumber": "^0.6.5",
+    "coffee-script": "^1.9.1",
+    "sinon": "^1.14.1"
+  },
+  "scripts": {
+    "coveralls": "gulp test && cat coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js",
+    "test": "gulp test",
+    "prepublish": "gulp dist"
+  }
+}
