@@ -1,5 +1,5 @@
 
-sqliteOrm = require '../lib/mapper'
+# sqliteOrm = require '../lib/mapper'
 
 assert = require 'should'
 

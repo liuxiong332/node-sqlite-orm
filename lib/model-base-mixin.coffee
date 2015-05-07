@@ -6,5 +6,3 @@ class ModelBaseMixin extends Mixin
 
   @included: ->
     ModelBaseMixin.models.add this
-
-  @define

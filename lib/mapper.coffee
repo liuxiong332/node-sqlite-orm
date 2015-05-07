@@ -7,6 +7,7 @@
 ###
 Q = require 'q'
 sqlite3 = require('sqlite3').verbose()
+_ = require 'underscore'
 
 module.exports =
 class Mapper
@@ -19,10 +20,8 @@ class Mapper
       if err then defer.reject(err) else defer.reject(db)
 
   define: (modelName, attributes, options) ->
-    # for attr, val of attributes
-
+    for attr, val of attributes
+      attributes[attr] = {type: val} if _.isString(val)
   sync: ->
     Q.async ->
       @db ?= yield @newDB()
-
-

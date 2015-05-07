@@ -1,8 +1,8 @@
-ModelBase = require '../lib/model-base'
+ModelBaseMixin = require '../lib/model-base'
 should = require 'should'
 
-describe 'ModelBase', ->
+describe 'ModelBaseMixin', ->
   it '@included', ->
-    class FakeModel extends ModelBase
-
+    class FakeModel
+      ModelBaseMixin.includeInto this
     FakeModel.models.has(FakeModel).should.ok
