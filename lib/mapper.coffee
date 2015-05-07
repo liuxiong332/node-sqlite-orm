@@ -14,11 +14,13 @@ class Mapper
   constructor: (@fileName) ->
     @db = null
 
-  newDB: ->
+  getDB: ->
     defer = Q.defer()
-    db = new sqlite3.Database @fileName, (err) ->
-      if err then defer.reject(err) else defer.reject(db)
+    if @db
+      defer.resolve(@db)
+    else
+      @db = new sqlite3.Database @fileName, (err) ->
+        if err then defer.reject(err) else defer.resolve(@db)
+    defer.promise
 
   sync: ->
-    Q.async ->
-      @db ?= yield @newDB()
