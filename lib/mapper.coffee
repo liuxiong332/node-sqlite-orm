@@ -19,9 +19,6 @@ class Mapper
     db = new sqlite3.Database @fileName, (err) ->
       if err then defer.reject(err) else defer.reject(db)
 
-  define: (modelName, attributes, options) ->
-    for attr, val of attributes
-      attributes[attr] = {type: val} if _.isString(val)
   sync: ->
     Q.async ->
       @db ?= yield @newDB()
