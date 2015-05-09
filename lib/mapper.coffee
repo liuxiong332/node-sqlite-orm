@@ -19,8 +19,13 @@ class Mapper
     if @db
       defer.resolve(@db)
     else
-      @db = new sqlite3.Database @fileName, (err) ->
+      @db = new sqlite3.Database @fileName, (err) =>
         if err then defer.reject(err) else defer.resolve(@db)
     defer.promise
 
   sync: ->
+
+  @INTEGER = 'INTEGER'
+  @REAL = 'REAL'
+  @TEXT = 'TEXT'
+  @BLOB = 'BLOB'
