@@ -5,4 +5,4 @@ describe 'ModelBaseMixin', ->
   it '@included', ->
     class FakeModel
       ModelBaseMixin.includeInto this
-    FakeModel.models.has(FakeModel).should.ok
+    FakeModel.models.FakeModel.should.equal FakeModel

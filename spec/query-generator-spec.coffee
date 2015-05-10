@@ -1,26 +1,14 @@
-queryGenerator = require '../lib/query-generator'
-Mapper = require '../lib/mapper'
-path = require 'path'
+QueryGenerator = require '../lib/query-generator'
 
 describe 'query generator', ->
-  db = null
-
-  beforeEach (done) ->
-    dbPath = path.resolve(__dirname, 'temp/test.db')
-    new Mapper(dbPath).getDB()
-    .then (_db) ->
-      db = _db
-      done()
-    .catch (err) -> done(err)
-
-  # afterEach (done) ->
-  #   db.close(done)
-
-  it 'createTableStmt', (done) ->
+  it 'columnDef', ->
     attr =
       type: 'INT', primaryKey: true, notNull: true, unique: true
+    stmt = QueryGenerator.columnDef 'Name', attr
+    stmt.should.equal 'Name INT PRIMARY KEY NOT NULL UNIQUE'
 
-    db.serialize ->
-      db.run queryGenerator.createTableStmt 'fakeTable', {column1: attr}
-
-    db.close -> done()
+    # attr =
+    #   type: 'INTEGER', references:
+    #     fields: ['id', 'name'], onDelete: true, onUpdate: true
+    # stmt = QueryGenerator.columnDef 'Name', attr
+    # stmt.should.equal 'Name INTEGER REFERENCES '
