@@ -31,7 +31,7 @@ class Mapper
     @getDB().then ->
       createPromises = for tableName, tableInfo of Migration.tables
         # extend the model class's attributes
-        ModelBase.models[tableName]?.extendAttrs tableInfo
+        ModelBase.models[tableName]?.extendModel tableName, tableInfo
         # create the database table
         query.createTable(tableName, tableInfo)
       Q.all(createPromises)

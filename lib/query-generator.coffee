@@ -27,3 +27,11 @@ class QueryGenerator
       if opts.onUpdate
         template += " ON UPDATE #{opts.onUpdate.toUpperCase()}"
     template
+
+  @insertStmt: (tableName, fields) ->
+    keys = []
+    values = []
+    for key, value of fields
+      keys.push key
+      values.push value
+    "INSERT INTO #{tableName} (#{keys.join(',')}) VALUES (#{values.join(',')})"
