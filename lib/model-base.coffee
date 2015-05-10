@@ -6,7 +6,7 @@ class ModelBaseMixin extends Mixin
 
   initModel: ->
     @isInsert = false
-    @changeKeys = []
+    @changeFields = {}
 
   @included: ->
     ModelBaseMixin.models[this.name] = this if this.name
@@ -16,11 +16,11 @@ class ModelBaseMixin extends Mixin
   @extendAttrs: (tableInfo) ->
     for name, opts in tableInfo.attributes when not @::hasOwnProperty(name)
       Object.defineProperty @property, name,
-        writable: true, _value: null,
+        writable: true, _value: opts.default ? null,
         get: -> _value
         set: (val) ->
           _value = val
-          @changeKeys.push name
+          @changeFields[name] = val
 
   Object.defineProperty this, 'tableName', {writable: true}
 
@@ -34,5 +34,7 @@ class ModelBaseMixin extends Mixin
 
   save: ->
     unless @isInsert
-      @query.insert ModelBaseMixin.tableName,
+      @query.insert ModelBaseMixin.tableName, @changeFields
+    @changeFields = {}
+
   create: ->
