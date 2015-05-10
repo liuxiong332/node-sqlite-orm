@@ -8,6 +8,9 @@
 Q = require 'q'
 sqlite3 = require('sqlite3').verbose()
 _ = require 'underscore'
+Migration = require './migration'
+Query = require './query'
+ModelBase = require './model-base'
 
 module.exports =
 class Mapper
@@ -21,9 +24,17 @@ class Mapper
     else
       @db = new sqlite3.Database @fileName, (err) =>
         if err then defer.reject(err) else defer.resolve(@db)
+        @query = new Query(@db)
     defer.promise
 
   sync: ->
+    @getDB().then ->
+      createPromises = for tableName, tableInfo of Migration.tables
+        # extend the model class's attributes
+        ModelBase.models[tableName]?.extendAttrs tableInfo
+        # create the database table
+        query.createTable(tableName, tableInfo)
+      Q.all(createPromises)
 
   @INTEGER = 'INTEGER'
   @REAL = 'REAL'

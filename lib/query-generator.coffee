@@ -1,11 +1,12 @@
 
 module.exports =
-  createTableStmt: (tableName, attributes) ->
+class QueryGenerator
+  @createTableStmt: (tableName, attributes) ->
     columnDefs = for colName, opts of attributes
       @columnDef(colName, opts)
     "CREATE TABLE IF NOT EXISTS #{tableName} (#{columnDefs})"
 
-  columnDef: (name, opts) ->
+  @columnDef: (name, opts) ->
     template = "#{name} #{opts.type}"
 
     if opts.primaryKey is true
