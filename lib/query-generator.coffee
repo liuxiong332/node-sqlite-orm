@@ -37,7 +37,7 @@ class QueryGenerator
     values = []
     for key, value of fields
       keys.push key
-      values.push value
+      values.push @wrapValue(value)
     "INSERT INTO #{tableName} (#{keys.join(',')}) VALUES (#{values.join(',')})"
 
   COMPARATOR_MAP =
@@ -47,25 +47,31 @@ class QueryGenerator
   LOGICAL_MAP =
     $and: 'AND', $or: 'OR'
 
+  exprStmtsJoin = (stmts, sep) ->
+    isParenthesis = stmts.length > 1
+    stmts = stmts.join(sep)
+    stmts = "(#{stmts})" if isParenthesis
+    stmts
+
   @oneExpr: (key, value) ->
     if key in ['$and', '$or']
       resArr = (@oneExpr(subKey, subVal) for subKey, subVal of value)
-      '(' + resArr.join(" #{LOGICAL_MAP[key]} ") + ')'
+      exprStmtsJoin(resArr, " #{LOGICAL_MAP[key]} ")
     else if key is '$not'
       resArr = (@oneExpr(subKey, subVal) for subKey, subVal of value)
-      'NOT (' + resArr.join(" AND ") + ')'
+      "NOT #{exprStmtsJoin(resArr, " AND ")}"
     else if _.isString(value)
-      "#{key}=#{value}"
+      "#{key} = #{@wrapValue(value)}"
     else
       resStrs = for subKey, subVal of value
         if subKey in ['$and', '$or']
           resArr = for nextKey, nextVal of subVal
-            @oneExpr(key, nextKey: nextVal)
-          '(' + resArr.join(" #{LOGICAL_MAP[key]} ") + ')'
+            @oneExpr(key, "#{nextKey}": nextVal)
+          exprStmtsJoin(resArr, " #{LOGICAL_MAP[subKey]} ")
         else if subKey is '$not'
           resArr = for nextKey, nextVal of subVal
-            @oneExpr(key, nextKey: nextVal)
-          'NOT (' + resArr.join(" AND ") + ')'
+            @oneExpr(key, "#{nextKey}": nextVal)
+          "NOT #{exprStmtsJoin(resArr, " AND ")}"
         else if subKey is '$in'
           "#{key} IN (#{subVal.join(', ')})"
         else if subKey is '$notIn'
@@ -75,9 +81,13 @@ class QueryGenerator
         else if subKey is '$notBetween'
           "#{key} NOT BETWEEN #{subVal.join(' AND ')}"
         else if COMPARATOR_MAP[subKey]
-          if subVal is null then subVal = 'NULL'
+          subVal = if subVal is null then 'NULL' else @wrapValue(subVal)
           "#{key} #{COMPARATOR_MAP[subKey]} #{subVal}"
-      "(#{resStrs.join(' AND ')})"
+      exprStmtsJoin(resStrs, ' AND ')
 
   @expr: (opts) ->
-    for key, value of opts
+    resStrs = (@oneExpr(key, value) for key, value of opts)
+    resStrs.join(' AND ')
+
+  @wrapValue: (val) ->
+    if _.isString(val) then "\"#{val}\"" else val
