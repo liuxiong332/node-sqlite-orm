@@ -6,13 +6,13 @@ class Query
   constructor: (@db) ->
 
   createTable: (tableName, attrs) ->
-    defer = Q.defer()
-    @db.run QueryGenerator.createTableStmt(tableName, attrs), (err) ->
-      if err then defer.reject(err) else defer.resolve(this.lastID)
-    defer.promise
+    Q.ninvoke @db, 'run', QueryGenerator.createTableStmt(tableName, attrs)
 
   insert: (tableName, fields) ->
-    Q.ninvoke @db, 'run', QueryGenerator.insertStmt(tableName, fields)
+    defer = Q.defer()
+    @db.run QueryGenerator.insertStmt(tableName, fields), (err) ->
+      if err then defer.reject(err) else defer.resolve(this.lastID)
+    defer.promise
 
   update: (tableName, fields, where) ->
     Q.ninvoke @db, 'run', QueryGenerator.updateStmt(tableName, fields, where)
@@ -22,3 +22,6 @@ class Query
 
   selectOne: (tableName, where, opts) ->
     Q.ninvoke @db, 'get', QueryGenerator.selectStmt(tableName, where, opts)
+
+  dropTable: (tableName) ->
+    Q.ninvoke @db, 'run', QueryGenerator.dropTableStmt(tableName)

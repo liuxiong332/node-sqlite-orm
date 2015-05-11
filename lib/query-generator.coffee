@@ -8,6 +8,7 @@ class QueryGenerator
     "CREATE TABLE IF NOT EXISTS #{tableName} (#{columnDefs})"
 
   @columnDef: (name, opts) ->
+    return "#{name} #{opts}" if _.isString(opts)
     template = "#{name} #{opts.type}"
 
     if opts.primaryKey is true
@@ -68,6 +69,9 @@ class QueryGenerator
       template += " LIMIT #{opts.limit}"
     template
 
+  @dropTableStmt: (tableName) ->
+    "DROP TABLE IF EXISTS #{tableName}"
+
   COMPARATOR_MAP =
     $eq: '=', $ne: '!=', $gte: '>=', $gt: '>', $lte: '<=', $lt: '<'
     $not: 'IS NOT', $is: 'IS', $like: 'LIKE', $notLike: 'NOT LIKE'
@@ -88,7 +92,7 @@ class QueryGenerator
     else if key is '$not'
       resArr = (@oneExpr(subKey, subVal) for subKey, subVal of value)
       "NOT #{exprStmtsJoin(resArr, " AND ")}"
-    else if _.isString(value)
+    else if not _.isObject(value)
       "#{key} = #{@wrapValue(value)}"
     else
       resStrs = for subKey, subVal of value
