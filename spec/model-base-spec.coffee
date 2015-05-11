@@ -38,5 +38,21 @@ describe 'ModelBaseMixin', ->
     FakeModel.create(mapper, {name: 'hello', email: 'hello@xx.xx'})
     .then (model) ->
       model.name.should.equal 'hello'
+      model.email.should.equal 'hello@xx.xx'
+      done()
+    .catch done
+
+  it 'save attributes', (done) ->
+    model = new FakeModel(mapper)
+    model.name = 'nimei'
+    model.save().then ->
+      FakeModel.find(mapper, {name: 'nimei'})
+    .then (resModel) ->
+      resModel.id.should.equal model.id
+    .then ->
+      FakeModel.findAll(mapper, {name: 'nimei'})
+    .then (resModels) ->
+      resModels.length.should.equal 1
+      resModels[0].id.should.equal model.id
       done()
     .catch done

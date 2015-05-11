@@ -1,4 +1,5 @@
 Mixin = require 'mixto'
+_ = require 'underscore'
 
 module.exports =
 class ModelBaseMixin extends Mixin
@@ -13,12 +14,13 @@ class ModelBaseMixin extends Mixin
     ModelBaseMixin.models[this.name] = this if this.name
 
   @defineAttr: (name, opts) ->
-    _value = opts.default ? null
+    key = '_' + name
     Object.defineProperty @prototype, name,
-      get: -> _value
+      get: -> this[key] ? opts.default
       set: (val) ->
-        _value = val
+        this[key] = val
         @changeFields[name] = val
+
   # apply tableInfo's attributes into the Model's prototype,
   # so that the model has the db column variables
   @extendAttrs: (tableInfo) ->
@@ -38,16 +40,15 @@ class ModelBaseMixin extends Mixin
       where = {"#{@primaryKeyName}": where}
     where
 
-  @find: (mapper, where, opts) ->
+  @find: (mapper, where, opts={}) ->
     opts.limit = 1
-    @query.selectOne(@tableName, @wrapWhere(where), opts).then (res) =>
-      @create(mapper, res)
+    mapper.query.selectOne(@tableName, @wrapWhere(where), opts).then (res) =>
+      @load(mapper, res)
 
   @findAll: (mapper, where, opts) ->
-    @query.select(@tableName, @wrapWhere(where), opts).then (results) =>
-      createPromises = for res in results
-        @create(mapper, res)
-      Q.all createPromises
+    mapper.query.select(@tableName, @wrapWhere(where), opts).then (results) =>
+      for res in results
+        @load(mapper, res)
 
   save: ->
     Constructor = @constructor
@@ -63,11 +64,19 @@ class ModelBaseMixin extends Mixin
       @query.update(tableName, @changeFields, where).then =>
         @changeFields = {}
 
-  @create: (mapper, obj) ->
+  @load: (mapper, obj) ->
     model = new this(mapper)
-    console.log model.hasOwnProperty('id')
+    model['_' + key] = val for key, val of obj
+    model
+
+  @new: (mapper, obj) ->
+    model = new this(mapper)
     for key, value of obj when @::hasOwnProperty(key)
       model[key] = value
+    model
+
+  @create: (mapper, obj) ->
+    model = @new(mapper, obj)
     model.save().then -> model
 
   @drop: (mapper) ->
