@@ -36,6 +36,8 @@ class Mapper
         query.createTable(tableName, tableInfo)
       Q.all(createPromises)
 
+  getQuery: -> @query
+
   @INTEGER = 'INTEGER'
   @REAL = 'REAL'
   @TEXT = 'TEXT'

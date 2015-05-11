@@ -4,9 +4,10 @@ module.exports =
 class ModelBaseMixin extends Mixin
   @models = {}
 
-  initModel: ->
+  initModel: (mapper) ->
     @isInsert = false
     @changeFields = {}
+    @query = mapper.query
 
   @included: ->
     ModelBaseMixin.models[this.name] = this if this.name
@@ -35,22 +36,29 @@ class ModelBaseMixin extends Mixin
       where = {"#{ModelBaseMixin.primaryKeyName}": where}
     where
 
-  @find: (where, opts) ->
+  @find: (mapper, where, opts) ->
     opts.limit = 1
-    tableName = ModelBaseMixin.tableName
-    @query.selectOne(tableName, wrapWhere(where), opts)
+    @query.selectOne(@tableName, wrapWhere(where), opts).then (res) =>
+      @create(mapper, res)
 
-  @findAll: (where, opts) ->
-    @query.select(ModelBaseMixin.tableName, wrapWhere(where), opts)
+  @findAll: (mapper, where, opts) ->
+    @query.select(@tableName, wrapWhere(where), opts).then (results) =>
+      createPromises = (@create(mapper, res) for res in results)
+      Q.all createPromises
 
   save: ->
     keyName = ModelBaseMixin.primaryKeyName
     unless @isInsert
       @query.insert(ModelBaseMixin.tableName, @changeFields).then (rowId) =>
         this[keyName] = rowId
+        @isInsert = true
     else
       tableName = ModelBaseMixin.tableName
       @query.update tableName, @changeFields, "#{keyName}": this[keyName]
     @changeFields = {}
 
-  @create: ->
+  @create: (mapper, obj) ->
+    model = new this(mapper)
+    for key, value of obj when model.hasOwnProperty(key)
+      model[key] = value
+    model.save()
