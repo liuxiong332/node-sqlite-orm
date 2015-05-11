@@ -46,6 +46,28 @@ class QueryGenerator
     whereOpts = whereOpts.where if whereOpts.where?
     "UPDATE #{tableName} SET #{values.join(', ')} WHERE #{@expr(whereOpts)}"
 
+  @orderingTerm: (orderBy) ->
+    if _.isString(orderBy) then orderByFields = orderBy
+    else if Array.isArray(orderBy)
+      orderByFields = orderBy.join(', ')
+    else
+      orderByFields = orderBy.field ? orderBy.fields.join(', ')
+    template = "ORDER BY #{orderByFields}"
+    if orderBy.asc
+      template += " ASC"
+    else if orderBy.desc
+      template += " DESC"
+    template
+
+  @selectStmt: (tableName, opts) ->
+    columns = opts.field ? opts.fields?.join(', ') ? '*'
+    template = "SELECT #{columns} FROM #{tableName}"
+    if opts.where then template += " WHERE #{@expr(opts.where)}"
+    if opts.orderBy then template += " #{@orderingTerm(opts.orderBy)}"
+    if opts.limit
+      template += " LIMIT #{opts.limit}"
+    template
+
   COMPARATOR_MAP =
     $eq: '=', $ne: '!=', $gte: '>=', $gt: '>', $lte: '<=', $lt: '<'
     $not: 'IS NOT', $is: 'IS', $like: 'LIKE', $notLike: 'NOT LIKE'

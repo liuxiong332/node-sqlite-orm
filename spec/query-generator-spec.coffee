@@ -34,3 +34,14 @@ describe 'query generator', ->
   it 'updateStmt', ->
     res = QueryGenerator.updateStmt 'table1', {f1: 'h1', f2: 'h2'}, {col1: 'hello'}
     res.should.equal 'UPDATE table1 SET f1 = "h1", f2 = "h2" WHERE col1 = "hello"'
+
+  it 'selectStmt', ->
+    opts =
+      fields: ['col1', 'col2'], where: {col: 'hello'}
+    res = QueryGenerator.selectStmt 'Name', opts
+    res.should.equal 'SELECT col1, col2 FROM Name WHERE col = "hello"'
+
+    opts =
+      orderBy: {field: 'col1', asc: true}, limit: 3
+    res = QueryGenerator.selectStmt 'Name', opts
+    res.should.equal 'SELECT * FROM Name ORDER BY col1 ASC LIMIT 3'

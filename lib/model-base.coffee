@@ -15,6 +15,7 @@ class ModelBaseMixin extends Mixin
   # so that the model has the db column variables
   @extendAttrs: (tableInfo) ->
     for name, opts in tableInfo.attributes when not @::hasOwnProperty(name)
+      if opts.primaryKey then @primaryKeyName = name
       Object.defineProperty @property, name,
         writable: true, _value: opts.default ? null,
         get: -> _value
@@ -23,18 +24,24 @@ class ModelBaseMixin extends Mixin
           @changeFields[name] = val
 
   Object.defineProperty this, 'tableName', {writable: true}
+  Object.defineProperty this, 'primaryKeyName', {writable: true}
 
   @extendModel: (tableName, tableInfo) ->
     @tableName = tableName
     @extendAttrs tableInfo
 
-  find: ->
+  @find: ->
 
-  findAll: ->
+  @findAll: (opts) ->
 
   save: ->
+    keyName = ModelBaseMixin.primaryKeyName
     unless @isInsert
-      @query.insert ModelBaseMixin.tableName, @changeFields
+      @query.insert(ModelBaseMixin.tableName, @changeFields).then (rowId) =>
+        this[keyName] = rowId
+    else
+      tableName = ModelBaseMixin.tableName
+      @query.update tableName, @changeFields, "#{keyName}": this[keyName]
     @changeFields = {}
 
-  create: ->
+  @create: ->
