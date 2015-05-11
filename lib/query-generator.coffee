@@ -59,10 +59,10 @@ class QueryGenerator
       template += " DESC"
     template
 
-  @selectStmt: (tableName, opts) ->
+  @selectStmt: (tableName, where, opts={}) ->
     columns = opts.field ? opts.fields?.join(', ') ? '*'
     template = "SELECT #{columns} FROM #{tableName}"
-    if opts.where then template += " WHERE #{@expr(opts.where)}"
+    if where then template += " WHERE #{@expr(where)}"
     if opts.orderBy then template += " #{@orderingTerm(opts.orderBy)}"
     if opts.limit
       template += " LIMIT #{opts.limit}"

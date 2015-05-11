@@ -37,11 +37,11 @@ describe 'query generator', ->
 
   it 'selectStmt', ->
     opts =
-      fields: ['col1', 'col2'], where: {col: 'hello'}
-    res = QueryGenerator.selectStmt 'Name', opts
+      fields: ['col1', 'col2']
+    res = QueryGenerator.selectStmt 'Name', {col: 'hello'}, opts
     res.should.equal 'SELECT col1, col2 FROM Name WHERE col = "hello"'
 
     opts =
       orderBy: {field: 'col1', asc: true}, limit: 3
-    res = QueryGenerator.selectStmt 'Name', opts
+    res = QueryGenerator.selectStmt 'Name', null, opts
     res.should.equal 'SELECT * FROM Name ORDER BY col1 ASC LIMIT 3'

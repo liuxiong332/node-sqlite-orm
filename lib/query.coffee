@@ -16,3 +16,9 @@ class Query
 
   update: (tableName, fields, where) ->
     Q.ninvoke @db, 'run', QueryGenerator.updateStmt(tableName, fields, where)
+
+  select: (tableName, where, opts) ->
+    Q.ninvoke @db, 'all', QueryGenerator.selectStmt(tableName, where, opts)
+
+  selectOne: (tableName, where, opts) ->
+    Q.ninvoke @db, 'get', QueryGenerator.selectStmt(tableName, where, opts)

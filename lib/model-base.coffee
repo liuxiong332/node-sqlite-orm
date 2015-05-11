@@ -30,9 +30,18 @@ class ModelBaseMixin extends Mixin
     @tableName = tableName
     @extendAttrs tableInfo
 
-  @find: ->
+  wrapWhere = (where) ->
+    unless _.isObject where
+      where = {"#{ModelBaseMixin.primaryKeyName}": where}
+    where
 
-  @findAll: (opts) ->
+  @find: (where, opts) ->
+    opts.limit = 1
+    tableName = ModelBaseMixin.tableName
+    @query.selectOne(tableName, wrapWhere(where), opts)
+
+  @findAll: (where, opts) ->
+    @query.select(ModelBaseMixin.tableName, wrapWhere(where), opts)
 
   save: ->
     keyName = ModelBaseMixin.primaryKeyName
