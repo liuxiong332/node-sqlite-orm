@@ -40,6 +40,12 @@ class QueryGenerator
       values.push @wrapValue(value)
     "INSERT INTO #{tableName} (#{keys.join(',')}) VALUES (#{values.join(',')})"
 
+  @updateStmt: (tableName, fields, whereOpts) ->
+    values = for key, value of fields
+      "#{key} = #{@wrapValue(value)}"
+    whereOpts = whereOpts.where if whereOpts.where?
+    "UPDATE #{tableName} SET #{values.join(', ')} WHERE #{@expr(whereOpts)}"
+
   COMPARATOR_MAP =
     $eq: '=', $ne: '!=', $gte: '>=', $gt: '>', $lte: '<=', $lt: '<'
     $not: 'IS NOT', $is: 'IS', $like: 'LIKE', $notLike: 'NOT LIKE'

@@ -28,3 +28,9 @@ describe 'query generator', ->
     QueryGenerator.expr(opts).should.match '(column1 > 5 AND column1 < 10)'
     opts = column1: {$or: {$gt: 5, $lt: 10}}
     QueryGenerator.expr(opts).should.match '(column1 > 5 OR column1 < 10)'
+    opts = column1: {$or: {$gt: 5, $lt: 10}, $gt: 8}
+    QueryGenerator.expr(opts).should.match '((column1 > 5 OR column1 < 10) AND column1 > 8)'
+
+  it 'updateStmt', ->
+    res = QueryGenerator.updateStmt 'table1', {f1: 'h1', f2: 'h2'}, {col1: 'hello'}
+    res.should.equal 'UPDATE table1 SET f1 = "h1", f2 = "h2" WHERE col1 = "hello"'
