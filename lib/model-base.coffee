@@ -15,10 +15,10 @@ class ModelBaseMixin extends Mixin
   # apply tableInfo's attributes into the Model's prototype,
   # so that the model has the db column variables
   @extendAttrs: (tableInfo) ->
-    for name, opts in tableInfo.attributes when not @::hasOwnProperty(name)
-      if opts.primaryKey then @primaryKeyName = name
-      Object.defineProperty @property, name,
-        writable: true, _value: opts.default ? null,
+    for name, opts of tableInfo.attributes when not @::hasOwnProperty(name)
+      @primaryKeyName = name if opts.primaryKey
+      Object.defineProperty @prototype, name,
+        _value: opts.default ? null,
         get: -> _value
         set: (val) ->
           _value = val
@@ -62,3 +62,6 @@ class ModelBaseMixin extends Mixin
     for key, value of obj when model.hasOwnProperty(key)
       model[key] = value
     model.save()
+
+  @drop: (mapper) ->
+    mapper.getQuery().dropTable @tableName

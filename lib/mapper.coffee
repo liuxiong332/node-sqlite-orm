@@ -28,13 +28,16 @@ class Mapper
     defer.promise
 
   sync: ->
-    @getDB().then ->
+    @getDB().then =>
       createPromises = for tableName, tableInfo of Migration.tables
         # extend the model class's attributes
         ModelBase.models[tableName]?.extendModel tableName, tableInfo
         # create the database table
-        query.createTable(tableName, tableInfo)
+        @query.createTable(tableName, tableInfo.attributes)
       Q.all(createPromises)
+
+  close: ->
+    Q.ninvoke @db, 'close'
 
   getQuery: -> @query
 

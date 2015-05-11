@@ -18,6 +18,6 @@ class Migration
   @tables = {}
 
   @createTable: (tableName, callback) ->
-    tableInfo = new TableInfo
+    tableInfo = new TableInfo(tableName)
     callback(tableInfo)
     @tables[tableName] = tableInfo
