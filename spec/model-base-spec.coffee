@@ -29,5 +29,14 @@ describe 'ModelBaseMixin', ->
       done()
     .catch(done)
 
-  it 'model test', ->
+  it 'get FakeModel attributes', (done) ->
     FakeModel.prototype.hasOwnProperty('name').should.ok
+    FakeModel.prototype.hasOwnProperty('id').should.ok
+    FakeModel.tableName.should.equal 'FakeModel'
+    FakeModel.primaryKeyName.should.equal 'id'
+
+    FakeModel.create(mapper, {name: 'hello', email: 'hello@xx.xx'})
+    .then (model) ->
+      model.name.should.equal 'hello'
+      done()
+    .catch done

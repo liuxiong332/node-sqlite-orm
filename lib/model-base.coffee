@@ -12,17 +12,19 @@ class ModelBaseMixin extends Mixin
   @included: ->
     ModelBaseMixin.models[this.name] = this if this.name
 
+  @defineAttr: (name, opts) ->
+    _value = opts.default ? null
+    Object.defineProperty @prototype, name,
+      get: -> _value
+      set: (val) ->
+        _value = val
+        @changeFields[name] = val
   # apply tableInfo's attributes into the Model's prototype,
   # so that the model has the db column variables
   @extendAttrs: (tableInfo) ->
     for name, opts of tableInfo.attributes when not @::hasOwnProperty(name)
       @primaryKeyName = name if opts.primaryKey
-      Object.defineProperty @prototype, name,
-        _value: opts.default ? null,
-        get: -> _value
-        set: (val) ->
-          _value = val
-          @changeFields[name] = val
+      @defineAttr name, opts
 
   Object.defineProperty this, 'tableName', {writable: true}
   Object.defineProperty this, 'primaryKeyName', {writable: true}
@@ -31,37 +33,42 @@ class ModelBaseMixin extends Mixin
     @tableName = tableName
     @extendAttrs tableInfo
 
-  wrapWhere = (where) ->
+  @wrapWhere: (where) ->
     unless _.isObject where
-      where = {"#{ModelBaseMixin.primaryKeyName}": where}
+      where = {"#{@primaryKeyName}": where}
     where
 
   @find: (mapper, where, opts) ->
     opts.limit = 1
-    @query.selectOne(@tableName, wrapWhere(where), opts).then (res) =>
+    @query.selectOne(@tableName, @wrapWhere(where), opts).then (res) =>
       @create(mapper, res)
 
   @findAll: (mapper, where, opts) ->
-    @query.select(@tableName, wrapWhere(where), opts).then (results) =>
-      createPromises = (@create(mapper, res) for res in results)
+    @query.select(@tableName, @wrapWhere(where), opts).then (results) =>
+      createPromises = for res in results
+        @create(mapper, res)
       Q.all createPromises
 
   save: ->
-    keyName = ModelBaseMixin.primaryKeyName
+    Constructor = @constructor
+    keyName = Constructor.primaryKeyName
+    tableName = Constructor.tableName
     unless @isInsert
-      @query.insert(ModelBaseMixin.tableName, @changeFields).then (rowId) =>
+      @query.insert(tableName, @changeFields).then (rowId) =>
         this[keyName] = rowId
+        @changeFields = {}
         @isInsert = true
     else
-      tableName = ModelBaseMixin.tableName
-      @query.update tableName, @changeFields, "#{keyName}": this[keyName]
-    @changeFields = {}
+      where = "#{keyName}": this[keyName]
+      @query.update(tableName, @changeFields, where).then =>
+        @changeFields = {}
 
   @create: (mapper, obj) ->
     model = new this(mapper)
-    for key, value of obj when model.hasOwnProperty(key)
+    console.log model.hasOwnProperty('id')
+    for key, value of obj when @::hasOwnProperty(key)
       model[key] = value
-    model.save()
+    model.save().then -> model
 
   @drop: (mapper) ->
     mapper.getQuery().dropTable @tableName
