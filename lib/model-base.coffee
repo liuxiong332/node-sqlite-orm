@@ -25,7 +25,6 @@ class ModelBaseMixin extends Mixin
   # so that the model has the db column variables
   @extendAttrs: (tableInfo) ->
     for name, opts of tableInfo.attributes when not @::hasOwnProperty(name)
-      @primaryKeyName = name if opts.primaryKey
       @defineAttr name, opts
 
   Object.defineProperty this, 'tableName', {writable: true}
@@ -33,6 +32,7 @@ class ModelBaseMixin extends Mixin
 
   @extendModel: (tableName, tableInfo) ->
     @tableName = tableName
+    @primaryKeyName = tableInfo.primaryKeyName
     @extendAttrs tableInfo
 
   @wrapWhere: (where) ->
@@ -75,6 +75,7 @@ class ModelBaseMixin extends Mixin
 
   @load: (mapper, obj) ->
     model = new this(mapper)
+    @isInsert = true
     model['_' + key] = val for key, val of obj
     model
 
