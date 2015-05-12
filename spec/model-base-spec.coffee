@@ -9,8 +9,8 @@ describe 'ModelBaseMixin', ->
   beforeEach (done) ->
     class FakeModel
       ModelBaseMixin.includeInto this
-      constructor: (mapper) ->
-        @initModel mapper
+      constructor: ->
+        @initModel()
       Migration.createTable 'FakeModel', (t) ->
         t.addColumn 'id', 'INTEGER', primaryKey: true
         t.addColumn 'name', 'INTEGER'
@@ -23,7 +23,7 @@ describe 'ModelBaseMixin', ->
     .catch (err) -> done(err)
 
   afterEach (done) ->
-    FakeModel.drop(mapper)
+    FakeModel.drop()
     .then ->
       mapper.close()
       done()
@@ -35,7 +35,7 @@ describe 'ModelBaseMixin', ->
     FakeModel.tableName.should.equal 'FakeModel'
     FakeModel.primaryKeyName.should.equal 'id'
 
-    FakeModel.create(mapper, {name: 'hello', email: 'hello@xx.xx'})
+    FakeModel.create({name: 'hello', email: 'hello@xx.xx'})
     .then (model) ->
       model.name.should.equal 'hello'
       model.email.should.equal 'hello@xx.xx'
@@ -43,19 +43,19 @@ describe 'ModelBaseMixin', ->
     .catch done
 
   it 'save attributes', (done) ->
-    model = new FakeModel(mapper)
+    model = new FakeModel()
     model.name = 'nimei'
     model.save().then ->
-      FakeModel.find(mapper, {name: 'nimei'})
+      FakeModel.find({name: 'nimei'})
     .then (resModel) ->
       resModel.id.should.equal model.id
     .then ->
-      FakeModel.findAll(mapper, {name: 'nimei'})
+      FakeModel.findAll({name: 'nimei'})
     .then (resModels) ->
       resModels.length.should.equal 1
       resModels[0].id.should.equal model.id
     .then ->
-      FakeModel.each mapper, {name: 'nimei'}, (err, res) ->
+      FakeModel.each {name: 'nimei'}, (err, res) ->
         return done(err) if err
         res.id.should.equal model.id
     .then -> done()

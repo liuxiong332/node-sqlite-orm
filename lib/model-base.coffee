@@ -5,10 +5,10 @@ module.exports =
 class ModelBaseMixin extends Mixin
   @models = {}
 
-  initModel: (mapper) ->
+  initModel: ->
     @isInsert = false
     @changeFields = {}
-    @query = mapper.query
+    @query = @constructor.query
 
   @included: ->
     ModelBaseMixin.models[this.name] = this if this.name
@@ -30,8 +30,9 @@ class ModelBaseMixin extends Mixin
   Object.defineProperty this, 'tableName', {writable: true}
   Object.defineProperty this, 'primaryKeyName', {writable: true}
 
-  @extendModel: (tableName, tableInfo) ->
-    @tableName = tableName
+  @extendModel: (mapper, tableInfo) ->
+    @query = mapper.getQuery()
+    @tableName = tableInfo.tableName
     @primaryKeyName = tableInfo.primaryKeyName
     @extendAttrs tableInfo
 
@@ -40,24 +41,30 @@ class ModelBaseMixin extends Mixin
       where = {"#{@primaryKeyName}": where}
     where
 
-  @find: (mapper, where, opts={}) ->
+  @belongsTo: (Model) ->
+
+  @hasMany: (Model) ->
+
+  @hasOne: (Model) ->
+
+  @find: (where, opts={}) ->
     opts.limit = 1
-    mapper.query.selectOne(@tableName, @wrapWhere(where), opts).then (res) =>
-      @load(mapper, res)
+    @query.selectOne(@tableName, @wrapWhere(where), opts).then (res) =>
+      @load(res)
 
-  @findAll: (mapper, where, opts) ->
-    mapper.query.select(@tableName, @wrapWhere(where), opts).then (results) =>
+  @findAll: (where, opts) ->
+    @query.select(@tableName, @wrapWhere(where), opts).then (results) =>
       for res in results
-        @load(mapper, res)
+        @load(res)
 
-  @each: (mapper, where, opts, step, complete) ->
+  @each: (where, opts, step, complete) ->
     if _.isFunction(where)
       step = where
       complete = opts
     else if _.isFunction(opts)
       step = opts
       complete = step
-    mapper.query.selectEach(@tableName, @wrapWhere(where), opts, step)
+    @query.selectEach(@tableName, @wrapWhere(where), opts, step)
 
   save: ->
     Constructor = @constructor
@@ -73,21 +80,23 @@ class ModelBaseMixin extends Mixin
       @query.update(tableName, @changeFields, where).then =>
         @changeFields = {}
 
-  @load: (mapper, obj) ->
-    model = new this(mapper)
+  @getById: (id) ->
+
+  @load: (obj) ->
+    model = new this
     @isInsert = true
     model['_' + key] = val for key, val of obj
     model
 
-  @new: (mapper, obj) ->
-    model = new this(mapper)
+  @new: (obj) ->
+    model = new this
     for key, value of obj when @::hasOwnProperty(key)
       model[key] = value
     model
 
-  @create: (mapper, obj) ->
-    model = @new(mapper, obj)
+  @create: (obj) ->
+    model = @new(obj)
     model.save().then -> model
 
-  @drop: (mapper) ->
-    mapper.getQuery().dropTable @tableName
+  @drop: ->
+    @query.dropTable @tableName
