@@ -11,11 +11,13 @@ _ = require 'underscore'
 Migration = require './migration'
 Query = require './query'
 ModelBase = require './model-base'
+Cache = require './cache'
 
 module.exports =
 class Mapper
-  constructor: (@fileName) ->
+  constructor: (@fileName, opts={}) ->
     @db = null
+    @cache = new Cache maxSize: opts.maxCacheSize
 
   getDB: ->
     defer = Q.defer()

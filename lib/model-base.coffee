@@ -27,25 +27,65 @@ class ModelBaseMixin extends Mixin
     for name, opts of tableInfo.attributes when not @::hasOwnProperty(name)
       @defineAttr name, opts
 
-  Object.defineProperty this, 'tableName', {writable: true}
-  Object.defineProperty this, 'primaryKeyName', {writable: true}
-
   @extendModel: (mapper, tableInfo) ->
     @query = mapper.getQuery()
+    @cache = mapper.cache
     @tableName = tableInfo.tableName
     @primaryKeyName = tableInfo.primaryKeyName
     @extendAttrs tableInfo
+    @belongsToAssos = new Map
+    @hasOneAssos = new Map
+    @hasManyAssos = new Map
 
   @wrapWhere: (where) ->
     unless _.isObject where
       where = {"#{@primaryKeyName}": where}
     where
 
-  @belongsTo: (Model) ->
+  camelCase = (str) -> str[0].toLowerCase() + str[1..]
+  pascalCase = (str) -> str[0].toUpper() + str[1..]
 
-  @hasMany: (Model) ->
+  @belongsTo: (TargetModel, opts) ->
+    targetName = camelCase(TargetModel.name)
+    opts.through ?= targetName + pascalCase(TargetModel.primaryKeyName)
+    opts.as ?= targetName
+    @belongsToAssos.set TargetModel, opts
+    Model = this
+    key = '_' + name
+    Object.defineProperty @prototype, targetName,
+      get: -> this[key]
+      set: (val) ->
+        origin = this[key]
+        this[key] = val
+        this[opts.through] = val[Model.primaryKeyName] # set the foreign key
+        # {as} = origin.hasOneAssos.get(Model) or origin.hasManyAssos.get(Model)
+        # if Array.isArray(as) then as[]
+        Model
 
-  @hasOne: (Model) ->
+  @hasMany: (TargetModel, opts) ->
+    targetName = camelCase(TargetModel.name) + 's'
+    Model = this
+    opts.through ?= camelCase(Model.name) + pascalCase(Model.primaryKeyName)
+    opts.as ?= targetName
+    @hasManyAssos.set TargetModel, opts
+    key = '_' + name
+    Object.defineProperty @prototype, targetName,
+      get: -> this[key]
+      set: (val) ->
+        origin = this[key]
+
+  @hasOne: (TargetModel) ->
+    targetModelName = camelCase(TargetModel.name)
+    Model = this
+    opts.through ?= camelCase(Model.name) + pascalCase(Model.primaryKeyName)
+    opts.as ?= targetModelName
+    @hasOneAssos.set TargetModel, opts
+    key = '_' + name
+    Object.defineProperty @prototype, targetModelName,
+      get: -> this[key]
+      set: (val) ->
+        origin = this[key]
+        this[key] = val
 
   @find: (where, opts={}) ->
     opts.limit = 1
@@ -81,6 +121,17 @@ class ModelBaseMixin extends Mixin
         @changeFields = {}
 
   @getById: (id) ->
+    key = @tableName + '@' + id
+    defer = Q.defer()
+    if (val = @cache.get(key))?
+      defer.resolve(val)
+    else
+      @query.selectOne(@tableName, @wrapWhere(id)).then (res) =>
+        val = @load(res)
+        @cache.set key, val
+        defer.resolve val
+      .catch (err) -> defer.reject(err)
+    defer.promise
 
   @load: (obj) ->
     model = new this
