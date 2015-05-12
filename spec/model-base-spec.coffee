@@ -54,5 +54,9 @@ describe 'ModelBaseMixin', ->
     .then (resModels) ->
       resModels.length.should.equal 1
       resModels[0].id.should.equal model.id
-      done()
+    .then ->
+      FakeModel.each mapper, {name: 'nimei'}, (err, res) ->
+        return done(err) if err
+        res.id.should.equal model.id
+    .then -> done()
     .catch done

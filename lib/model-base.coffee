@@ -50,6 +50,15 @@ class ModelBaseMixin extends Mixin
       for res in results
         @load(mapper, res)
 
+  @each: (mapper, where, opts, step, complete) ->
+    if _.isFunction(where)
+      step = where
+      complete = opts
+    else if _.isFunction(opts)
+      step = opts
+      complete = step
+    mapper.query.selectEach(@tableName, @wrapWhere(where), opts, step)
+
   save: ->
     Constructor = @constructor
     keyName = Constructor.primaryKeyName

@@ -20,6 +20,10 @@ class Query
   select: (tableName, where, opts) ->
     Q.ninvoke @db, 'all', QueryGenerator.selectStmt(tableName, where, opts)
 
+  selectEach: (tableName, where, opts, stepFunc) ->
+    sql = QueryGenerator.selectStmt(tableName, where, opts)
+    Q.ninvoke @db, 'each', sql, stepFunc
+
   selectOne: (tableName, where, opts) ->
     Q.ninvoke @db, 'get', QueryGenerator.selectStmt(tableName, where, opts)
 
