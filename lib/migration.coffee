@@ -19,8 +19,8 @@ class TableInfo
     @references[name] = opts
 
   _finishConfig: ->
-    for name, opts of @references
-      opts.fields ?= Migration.tables[tableName].primaryKeyName
+    for name, {references} of @references
+      references.fields ?= Migration.tables[references.name].primaryKeyName
 
 module.exports =
 class Migration

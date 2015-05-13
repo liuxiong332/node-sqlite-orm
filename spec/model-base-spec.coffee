@@ -62,6 +62,7 @@ describe 'ModelBaseMixin', ->
     .catch done
 
 describe 'ModelBaseMixin association', ->
+  [ParentModel, ChildModel, mapper] = []
   beforeEach (done) ->
     Migration.createTable 'ParentModel', (t) ->
       t.addColumn 'id', 'INTEGER', primaryKey: true
@@ -85,7 +86,9 @@ describe 'ModelBaseMixin association', ->
     .catch (err) -> done(err)
 
   afterEach (done) ->
-    FakeModel.drop().then ->
+    ParentModel.drop().then ->
+      ChildModel.drop()
+    .then ->
       mapper.close()
       done()
     .catch(done)

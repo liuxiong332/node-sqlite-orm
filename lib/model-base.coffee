@@ -31,12 +31,13 @@ class ModelBaseMixin extends Mixin
       @defineAttr name, opts
 
   @extendModel: (mapper, tableInfo) ->
-    console.log tableInfo.primaryKeyName
     @query = mapper.getQuery()
     @cache = mapper.cache
     @tableName = tableInfo.tableName
     @primaryKeyName = tableInfo.primaryKeyName
     @extendAttrs tableInfo
+
+  @extendAssos: ->
     @extendBelongsTo()
     @extendHasOne()
 
@@ -71,7 +72,6 @@ class ModelBaseMixin extends Mixin
       child[opts.through] = parent?[ParentModel.primaryKeyName] ? null
 
   defaultThrough = (ParentModel) ->
-    console.log ParentModel
     camelCase(ParentModel.name) + pascalCase(ParentModel.primaryKeyName)
 
   @belongsTo: (ParentModel, opts={}) ->
