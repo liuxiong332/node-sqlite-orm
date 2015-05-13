@@ -1,5 +1,6 @@
 Mixin = require 'mixto'
 _ = require 'underscore'
+Q = require 'q'
 
 module.exports =
 class ModelBaseMixin extends Mixin
@@ -142,14 +143,18 @@ class ModelBaseMixin extends Mixin
           setBelongsTo(Model, ChildModel, this, val) if val
 
   @find: (where, opts={}) ->
-    opts.limit = 1
-    @query.selectOne(@tableName, @wrapWhere(where), opts).then (res) =>
-      @load(res)
+    unless _.isObject(where)
+      @getById(where)
+    else
+      opts.limit = 1
+      @query.selectOne(@tableName, @wrapWhere(where), opts).then (res) =>
+        @load(res)
 
   @findAll: (where, opts) ->
     @query.select(@tableName, @wrapWhere(where), opts).then (results) =>
-      for res in results
+      promises = for res in results
         @load(res)
+      Q.all promises
 
   @each: (where, opts, step, complete) ->
     if _.isFunction(where)
@@ -168,30 +173,65 @@ class ModelBaseMixin extends Mixin
       @query.insert(tableName, @changeFields).then (rowId) =>
         this[keyName] = rowId
         @changeFields = {}
+        Model = @constructor
+        Model.cache.set Model.generateCacheKey(rowId), this
         @isInsert = true
+        # Model.loadAssos(this)
     else
       where = "#{keyName}": this[keyName]
       @query.update(tableName, @changeFields, where).then =>
         @changeFields = {}
 
+  @generateCacheKey: (id) -> @tableName + '@' + id
+
   @getById: (id) ->
-    key = @tableName + '@' + id
-    defer = Q.defer()
-    if (val = @cache.get(key))?
-      defer.resolve(val)
+    key = generateCacheKey(id)
+    if (model = @cache.get(key))?
+      Q(model)
     else
       @query.selectOne(@tableName, @wrapWhere(id)).then (res) =>
-        val = @load(res)
-        @cache.set key, val
-        defer.resolve val
-      .catch (err) -> defer.reject(err)
-    defer.promise
+        @loadNoCache(res)
 
-  @load: (obj) ->
+  @loadNoCache: (obj) ->
     model = new this
     @isInsert = true
     model['_' + key] = val for key, val of obj
-    model
+    @cache.set cacheKey, model
+    @loadAssos(model).then -> model
+
+  @load: (obj) ->
+    primaryVal = obj[@primaryKeyName]
+    cacheKey = @generateCacheKey(primaryVal)
+    if (model = @cache.get(cacheKey))?
+      Q(model)
+    else
+      @loadNoCache(obj)
+
+  @loadAssos: (model) ->
+    Q.all [@loadBelongsTo(model), @loadHasOne(model), @loadHasMany(model)]
+
+  @loadBelongsTo: (model) ->
+    promises = for index of @belongsToAssos
+      [opts, ParentModel] = index
+      ParentModel.getById(model[opts.through]).then (parent) ->
+        model[opts.as] = parent
+    Q.all promises
+
+  @loadHasOne: (model) ->
+    keyName = @primaryKeyName
+    promises = for index of @hasOneAssos
+      [opts, ChildModel] = index
+      ChildModel.find({"#{opts.through}": model[keyName]}).then (child) ->
+        model[opts.as] = child
+    Q.all promises
+
+  @loadHasMany: (model) ->
+    keyName = @primaryKeyName
+    promises = for index of @hasOneAssos
+      [opts, ChildModel] = index
+      ChildModel.findAll({"#{opts.through}": model[keyName]}).then (children) ->
+        model[opts.as].splice(0, 0, children)
+    Q.all promises
 
   @new: (obj) ->
     model = new this
