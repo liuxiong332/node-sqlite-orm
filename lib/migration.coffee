@@ -34,3 +34,5 @@ class Migration
   @_finishConfig: ->
     for name, info of @tables
       info._finishConfig()
+
+  @clear: -> @tables = {}

@@ -39,7 +39,7 @@ class Mapper
         @query.createTable(tableName, tableInfo.attributes)
 
       Q.all(createPromises).then ->
-        Model.extendAssos() for name, Model of ModelBase.models
+        Model?.extendAssos() for name, Model of ModelBase.models
 
   close: ->
     Q.ninvoke @db, 'close'

@@ -66,8 +66,8 @@ class ModelBaseMixin extends Mixin
       children.push(child)
 
   setBelongsTo = (ParentModel, ChildModel, parent, child) ->
-    if (opts = ChildModel.belongsTo[ParentModel])?
-      child[privateName(key)] = parent
+    if (opts = ChildModel.belongsToAssos.get(ParentModel))?
+      child[privateName(opts.as)] = parent
       # set the foreign key
       child[opts.through] = parent?[ParentModel.primaryKeyName] ? null
 
@@ -88,7 +88,7 @@ class ModelBaseMixin extends Mixin
         set: (val) ->
           origin = this[key]
           setBelongsTo(ParentModel, Model, val, this)
-          removeFromHasAssos(ParentModel, Model, origin, this)
+          removeFromHasAssos(ParentModel, Model, origin, this) if origin
           addIntoHasAssos(ParentModel, Model, val, this)
 
   @hasMany: (TargetModel, opts={}) ->
@@ -181,4 +181,5 @@ class ModelBaseMixin extends Mixin
     model.save().then -> model
 
   @drop: ->
+    delete @models[@name]
     @query.dropTable @tableName

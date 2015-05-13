@@ -25,6 +25,7 @@ describe 'ModelBaseMixin', ->
   afterEach (done) ->
     FakeModel.drop()
     .then ->
+      Migration.clear()
       mapper.close()
       done()
     .catch(done)
@@ -66,9 +67,11 @@ describe 'ModelBaseMixin association', ->
   beforeEach (done) ->
     Migration.createTable 'ParentModel', (t) ->
       t.addColumn 'id', 'INTEGER', primaryKey: true
+      t.addColumn 'name', 'TEXT'
 
     Migration.createTable 'ChildModel', (t) ->
       t.addColumn 'id', 'INTEGER', primaryKey: true
+      t.addColumn 'name', 'TEXT'
       t.addReference 'parentModelId', 'ParentModel'
 
     class ParentModel
@@ -93,4 +96,17 @@ describe 'ModelBaseMixin association', ->
       done()
     .catch(done)
 
-  it 'hasOne', ->
+  it 'belongsTo', ->
+    child = new ChildModel
+    child.name = 'child'
+    parent = new ParentModel
+    parent.name = 'parent'
+    child.save().then ->
+      parent.save()
+    .then ->
+      child.parentModel = parent
+      child.parentModel.should.equal parent
+      child.parentModelId.should.equal parent.id
+      parent.childModel.should.equal child
+    .then ->
+      child.save()
