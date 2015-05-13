@@ -2,6 +2,7 @@ ModelBaseMixin = require '../lib/model-base'
 Mapper = require '../lib/mapper'
 Migration = require '../lib/migration'
 path = require 'path'
+Q = require 'q'
 
 describe 'ModelBaseMixin', ->
   [mapper, FakeModel] = []
@@ -62,8 +63,8 @@ describe 'ModelBaseMixin', ->
     .then -> done()
     .catch done
 
-describe 'ModelBaseMixin association', ->
-  [ParentModel, ChildModel, mapper] = []
+describe 'ModelBaseMixin 1-1 association', ->
+  [ParentModel, ChildModel, SomeModel, mapper] = []
   beforeEach (done) ->
     Migration.createTable 'ParentModel', (t) ->
       t.addColumn 'id', 'INTEGER', primaryKey: true
@@ -74,8 +75,18 @@ describe 'ModelBaseMixin association', ->
       t.addColumn 'name', 'TEXT'
       t.addReference 'parentModelId', 'ParentModel'
 
+    Migration.createTable 'SomeModel', (t) ->
+      t.addColumn 'id', 'INTEGER', primaryKey: true
+      t.addColumn 'name', 'TEXT'
+      t.addReference 'parentModelId', 'ParentModel'
+
     class ParentModel
       class ChildModel
+        ModelBaseMixin.includeInto this
+        constructor: -> @initModel()
+        @belongsTo ParentModel
+
+      class SomeModel
         ModelBaseMixin.includeInto this
         constructor: -> @initModel()
         @belongsTo ParentModel
@@ -83,6 +94,7 @@ describe 'ModelBaseMixin association', ->
       ModelBaseMixin.includeInto this
       constructor: -> @initModel()
       @hasOne ChildModel
+      @hasMany SomeModel
 
     mapper = new Mapper path.resolve(__dirname, 'temp/test.db')
     mapper.sync().then -> done()
@@ -91,6 +103,7 @@ describe 'ModelBaseMixin association', ->
   afterEach (done) ->
     ParentModel.drop().then ->
       ChildModel.drop()
+    .then -> SomeModel.drop()
     .then ->
       Migration.clear()
       mapper.close()
@@ -130,4 +143,42 @@ describe 'ModelBaseMixin association', ->
       parent.childModel = null
       child.save()
     .then -> done()
+    .catch done
+
+  it 'belongsTo N-1', (done) ->
+    child = new SomeModel
+    child.name = 'child'
+    parent = new ParentModel
+    parent.name = 'parent'
+    child.save().then ->
+      parent.save()
+    .then ->
+      child.parentModel = parent
+      child.parentModel.should.equal parent
+      child.parentModelId.should.equal parent.id
+      parent.someModels[0].should.equal child
+
+      child.parentModel = null
+      parent.someModels.length.should.equal 0
+    .then -> done()
+    .catch done
+
+  it 'hasMany', (done) ->
+    child = new SomeModel
+    child.name = 'child'
+    parent = new ParentModel
+    parent.name = 'parent'
+    child.save().then ->
+      parent.save()
+    .then ->
+      parent.someModels.push child
+      Q.delay(0)
+    .then ->
+      child.parentModelId.should.equal parent.id
+      child.parentModel.should.equal parent
+      parent.someModels.pop()
+      Q.delay(0)
+    .then ->
+      (child.parentModelId is null).should.ok
+      done()
     .catch done

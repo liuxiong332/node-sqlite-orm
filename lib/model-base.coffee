@@ -14,9 +14,11 @@ class ModelBaseMixin extends Mixin
     ModelBaseMixin.models[this.name] = this if this.name
     @belongsToAssos = new Map
     @hasOneAssos = new Map
+    @hasManyAssos = new Map
 
   @defineAttr: (name, opts) ->
     key = '_' + name
+    opts.default ?= null
     Object.defineProperty @prototype, name,
       get: -> this[key] ? opts.default
       set: (val) ->
@@ -39,6 +41,7 @@ class ModelBaseMixin extends Mixin
   @extendAssos: ->
     @extendBelongsTo()
     @extendHasOne()
+    @extendHasMany()
 
   @wrapWhere: (where) ->
     unless _.isObject where
@@ -52,8 +55,8 @@ class ModelBaseMixin extends Mixin
   removeFromHasAssos = (ParentModel, ChildModel, parent, child) ->
     if (opts = ParentModel.hasOneAssos.get(ChildModel))?
       parent[privateName(opts.as)] = null
-    else if (opts = ParentModel.hasManyAssos.get(this))?
-      children = parent[privateName(opts.as)]
+    else if (opts = ParentModel.hasManyAssos.get(ChildModel))?
+      children = parent[opts.as]
       index = children.indexOf(child)
       children.splice(index, 1) if index isnt -1
 
@@ -61,7 +64,7 @@ class ModelBaseMixin extends Mixin
     if (opts = ParentModel.hasOneAssos.get(ChildModel))?
       parent[privateName(opts.as)] = child
     else if (opts = ParentModel.hasManyAssos.get(ChildModel))?
-      children = parent[privateName(opts.as)]
+      children = parent[opts.as]
       children.push(child)
 
   setBelongsTo = (ParentModel, ChildModel, parent, child) ->
@@ -89,18 +92,37 @@ class ModelBaseMixin extends Mixin
           origin = this[key]
           setBelongsTo(ParentModel, Model, val, this)
           removeFromHasAssos(ParentModel, Model, origin, this) if origin
-          addIntoHasAssos(ParentModel, Model, val, this)
+          addIntoHasAssos(ParentModel, Model, val, this) if val
 
-  @hasMany: (TargetModel, opts={}) ->
+  _watchHasManyChange: (change, val, Model, ChildModel) ->
+    if change.type is 'update'
+      removes = [change.oldValue]
+      creates = [val[change.name]]
+    else if change.type is 'splice'
+      removes = change.removed
+      index = change.index
+      creates = val.slice(index, index + change.addedCount)
+    for removed in removes when removed
+      setBelongsTo(Model, ChildModel, null, removed)
+    for created in creates when created
+      setBelongsTo(Model, ChildModel, this, created)
+
+  @hasMany: (ChildModel, opts={}) ->
+    @hasManyAssos.set ChildModel, opts
+
+  @extendHasMany: ->
     Model = this
-    opts.through ?= defaultThrough(this)
-    opts.as ?= camelCase(TargetModel.name) + 's'
-    @hasManyAssos.set TargetModel, opts
-    key = privateName(opts.as)
-    Object.defineProperty @prototype, opts.as, get: ->
-      unless (val = this[key])?
-        val = []
-        Array.observe val, (changes) ->
+    @hasManyAssos.forEach (opts, ChildModel) =>
+      opts.through ?= defaultThrough(this)
+      opts.as ?= camelCase(ChildModel.name) + 's'
+      key = privateName(opts.as)
+      Object.defineProperty @prototype, opts.as, get: ->
+        unless (val = this[key])?
+          val = this[key] = []
+          Array.observe val, (changes) =>
+            for change in changes
+              @_watchHasManyChange(change, val, Model, ChildModel)
+        val
 
   @hasOne: (ChildModel, opts={}) ->
     @hasOneAssos.set ChildModel, opts
