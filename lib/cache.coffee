@@ -41,9 +41,7 @@ module.exports =
 class Cache
   constructor: (options) ->
     @maxSize = options.maxSize ? Infinity
-    @curSize = 0
-    @cache = new Map
-    @list = new List
+    @clear()
 
   get: (key) ->
     node = @cache.get(key)
@@ -64,6 +62,11 @@ class Cache
       if ++ @curSize > @maxSize
         @_removeNode list.tail.prev
         -- @curSize
+
+  clear: ->
+    @curSize = 0
+    @cache = new Map
+    @list = new List
 
   _removeNode: (node) ->
     @list.detach node

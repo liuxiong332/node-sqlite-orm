@@ -83,16 +83,16 @@ describe 'ModelBaseMixin 1-1 association', ->
     class ParentModel
       class ChildModel
         ModelBaseMixin.includeInto this
-        constructor: -> @initModel()
+        constructor: (params) -> @initModel params
         @belongsTo ParentModel
 
       class SomeModel
         ModelBaseMixin.includeInto this
-        constructor: -> @initModel()
+        constructor: (params) -> @initModel params
         @belongsTo ParentModel
 
       ModelBaseMixin.includeInto this
-      constructor: -> @initModel()
+      constructor: (params) -> @initModel params
       @hasOne ChildModel
       @hasMany SomeModel
 
@@ -164,10 +164,8 @@ describe 'ModelBaseMixin 1-1 association', ->
     .catch done
 
   it 'hasMany', (done) ->
-    child = new SomeModel
-    child.name = 'child'
-    parent = new ParentModel
-    parent.name = 'parent'
+    child = new SomeModel name: 'child'
+    parent = new ParentModel name: 'parent'
     child.save().then ->
       parent.save()
     .then ->
@@ -180,5 +178,26 @@ describe 'ModelBaseMixin 1-1 association', ->
       Q.delay(0)
     .then ->
       (child.parentModelId is null).should.ok
+    .then ->
+      mapper.cache.clear()
+      SomeModel.getById(1)
+    .then (model) ->
+      done()
+    .catch done
+
+  it 'load', (done) ->
+    child = new SomeModel name: 'child'
+    parent = new ParentModel name: 'parent'
+    child.save().then -> parent.save()
+    .then ->
+      parent.someModels.push child
+      Q.delay(0)
+    .then -> Q.all [child.save(), parent.save()]
+    .then ->
+      mapper.cache.clear()
+      SomeModel.getById(1)
+    .then (child) ->
+      console.log child
+      console.log child.parentModel
       done()
     .catch done

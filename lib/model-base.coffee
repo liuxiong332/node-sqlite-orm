@@ -6,10 +6,11 @@ module.exports =
 class ModelBaseMixin extends Mixin
   @models = {}
 
-  initModel: ->
+  initModel: (params) ->
     @isInsert = false
     @changeFields = {}
     @query = @constructor.query
+    this[key] = val for key, val of params
 
   @included: ->
     ModelBaseMixin.models[this.name] = this if this.name
@@ -177,6 +178,8 @@ class ModelBaseMixin extends Mixin
         Model.cache.set Model.generateCacheKey(rowId), this
         @isInsert = true
         # Model.loadAssos(this)
+    else if _.keys(@changeFields).length is 0
+      Q()
     else
       where = "#{keyName}": this[keyName]
       @query.update(tableName, @changeFields, where).then =>
@@ -185,7 +188,7 @@ class ModelBaseMixin extends Mixin
   @generateCacheKey: (id) -> @tableName + '@' + id
 
   @getById: (id) ->
-    key = generateCacheKey(id)
+    key = @generateCacheKey(id)
     if (model = @cache.get(key))?
       Q(model)
     else
@@ -196,7 +199,8 @@ class ModelBaseMixin extends Mixin
     model = new this
     @isInsert = true
     model['_' + key] = val for key, val of obj
-    @cache.set cacheKey, model
+    primaryVal = obj[@primaryKeyName]
+    @cache.set @generateCacheKey(primaryVal), model
     @loadAssos(model).then -> model
 
   @load: (obj) ->
@@ -211,15 +215,17 @@ class ModelBaseMixin extends Mixin
     Q.all [@loadBelongsTo(model), @loadHasOne(model), @loadHasMany(model)]
 
   @loadBelongsTo: (model) ->
-    promises = for index of @belongsToAssos
+    promises = for index in @belongsToAssos
       [opts, ParentModel] = index
-      ParentModel.getById(model[opts.through]).then (parent) ->
-        model[opts.as] = parent
+      if (id = model[opts.through])
+        ParentModel.getById(id).then (parent) ->
+          model[opts.as] = parent
+      else Q(null)
     Q.all promises
 
   @loadHasOne: (model) ->
     keyName = @primaryKeyName
-    promises = for index of @hasOneAssos
+    promises = for index in @hasOneAssos
       [opts, ChildModel] = index
       ChildModel.find({"#{opts.through}": model[keyName]}).then (child) ->
         model[opts.as] = child
@@ -227,7 +233,7 @@ class ModelBaseMixin extends Mixin
 
   @loadHasMany: (model) ->
     keyName = @primaryKeyName
-    promises = for index of @hasOneAssos
+    promises = for index in @hasOneAssos
       [opts, ChildModel] = index
       ChildModel.findAll({"#{opts.through}": model[keyName]}).then (children) ->
         model[opts.as].splice(0, 0, children)
