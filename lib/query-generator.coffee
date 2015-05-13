@@ -25,7 +25,8 @@ class QueryGenerator
       template += " DEFAULT #{opts.default}"
 
     if (refs = opts.references)?
-      columns = refs.field ? refs.fields.join(',')
+      columns = refs.fields
+      if Array.isArray(columns) then columns = columns.join(',')
       template += " REFERENCES #{refs.name} (#{columns})"
       if opts.onDelete
         template += " ON DELETE #{opts.onDelete.toUpperCase()}"

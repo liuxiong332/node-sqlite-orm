@@ -4,6 +4,9 @@ _ = require 'underscore'
 module.exports =
 class ModelBaseMixin extends Mixin
   @models = {}
+  @belongsToAssos = new Map
+  @hasOneAssos = new Map
+  @hasManyAssos = new Map
 
   initModel: ->
     @isInsert = false
@@ -28,14 +31,14 @@ class ModelBaseMixin extends Mixin
       @defineAttr name, opts
 
   @extendModel: (mapper, tableInfo) ->
+    console.log tableInfo.primaryKeyName
     @query = mapper.getQuery()
     @cache = mapper.cache
     @tableName = tableInfo.tableName
     @primaryKeyName = tableInfo.primaryKeyName
     @extendAttrs tableInfo
-    @belongsToAssos = new Map
-    @hasOneAssos = new Map
-    @hasManyAssos = new Map
+    @extendBelongsTo()
+    @extendHasOne()
 
   @wrapWhere: (where) ->
     unless _.isObject where
@@ -43,49 +46,77 @@ class ModelBaseMixin extends Mixin
     where
 
   camelCase = (str) -> str[0].toLowerCase() + str[1..]
-  pascalCase = (str) -> str[0].toUpper() + str[1..]
+  pascalCase = (str) -> str[0].toUpperCase() + str[1..]
+  privateName = (name) -> '_' + name
 
-  @belongsTo: (TargetModel, opts) ->
-    targetName = camelCase(TargetModel.name)
-    opts.through ?= targetName + pascalCase(TargetModel.primaryKeyName)
-    opts.as ?= targetName
-    @belongsToAssos.set TargetModel, opts
-    Model = this
-    key = '_' + name
-    Object.defineProperty @prototype, targetName,
-      get: -> this[key]
-      set: (val) ->
-        origin = this[key]
-        this[key] = val
-        this[opts.through] = val[Model.primaryKeyName] # set the foreign key
-        # {as} = origin.hasOneAssos.get(Model) or origin.hasManyAssos.get(Model)
-        # if Array.isArray(as) then as[]
-        Model
+  removeFromHasAssos = (ParentModel, ChildModel, parent, child) ->
+    if (opts = ParentModel.hasOneAssos.get(ChildModel))?
+      parent[privateName(opts.as)] = null
+    else if (opts = ParentModel.hasManyAssos.get(this))?
+      children = parent[privateName(opts.as)]
+      index = children.indexOf(child)
+      children.splice(index, 1) if index isnt -1
 
-  @hasMany: (TargetModel, opts) ->
-    targetName = camelCase(TargetModel.name) + 's'
+  addIntoHasAssos = (ParentModel, ChildModel, parent, child) ->
+    if (opts = ParentModel.hasOneAssos.get(ChildModel))?
+      parent[privateName(opts.as)] = child
+    else if (opts = ParentModel.hasManyAssos.get(ChildModel))?
+      children = parent[privateName(opts.as)]
+      children.push(child)
+
+  setBelongsTo = (ParentModel, ChildModel, parent, child) ->
+    if (opts = ChildModel.belongsTo[ParentModel])?
+      child[privateName(key)] = parent
+      # set the foreign key
+      child[opts.through] = parent?[ParentModel.primaryKeyName] ? null
+
+  defaultThrough = (ParentModel) ->
+    console.log ParentModel
+    camelCase(ParentModel.name) + pascalCase(ParentModel.primaryKeyName)
+
+  @belongsTo: (ParentModel, opts={}) ->
+    @belongsToAssos.set ParentModel, opts
+
+  @extendBelongsTo: ->
     Model = this
-    opts.through ?= camelCase(Model.name) + pascalCase(Model.primaryKeyName)
-    opts.as ?= targetName
+    @belongsToAssos.forEach (opts, ParentModel) =>
+      opts.through ?= defaultThrough(ParentModel)
+      opts.as ?= camelCase(ParentModel.name)
+      key = privateName(opts.as)
+      Object.defineProperty @prototype, opts.as,
+        get: -> this[key]
+        set: (val) ->
+          origin = this[key]
+          setBelongsTo(ParentModel, Model, val, this)
+          removeFromHasAssos(ParentModel, Model, origin, this)
+          addIntoHasAssos(ParentModel, Model, val, this)
+
+  @hasMany: (TargetModel, opts={}) ->
+    Model = this
+    opts.through ?= defaultThrough(this)
+    opts.as ?= camelCase(TargetModel.name) + 's'
     @hasManyAssos.set TargetModel, opts
-    key = '_' + name
-    Object.defineProperty @prototype, targetName,
-      get: -> this[key]
-      set: (val) ->
-        origin = this[key]
+    key = privateName(opts.as)
+    Object.defineProperty @prototype, opts.as, get: ->
+      unless (val = this[key])?
+        val = []
+        Array.observe val, (changes) ->
 
-  @hasOne: (TargetModel) ->
-    targetModelName = camelCase(TargetModel.name)
+  @hasOne: (ChildModel, opts={}) ->
+    @hasOneAssos.set ChildModel, opts
+
+  @extendHasOne: ->
     Model = this
-    opts.through ?= camelCase(Model.name) + pascalCase(Model.primaryKeyName)
-    opts.as ?= targetModelName
-    @hasOneAssos.set TargetModel, opts
-    key = '_' + name
-    Object.defineProperty @prototype, targetModelName,
-      get: -> this[key]
-      set: (val) ->
-        origin = this[key]
-        this[key] = val
+    @hasOneAssos.forEach (opts, ChildModel) =>
+      opts.through ?= defaultThrough(this)
+      opts.as ?= camelCase(ChildModel.name)
+      key = privateName(opts.as)
+      Object.defineProperty @prototype, opts.as,
+        get: -> this[key]
+        set: (val) ->
+          setBelongsTo(Model, ChildModel, null, this[key])
+          this[key] = val
+          setBelongsTo(Model, ChildModel, this, val)
 
   @find: (where, opts={}) ->
     opts.limit = 1

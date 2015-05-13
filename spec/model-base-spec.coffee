@@ -60,3 +60,34 @@ describe 'ModelBaseMixin', ->
         res.id.should.equal model.id
     .then -> done()
     .catch done
+
+describe 'ModelBaseMixin association', ->
+  beforeEach (done) ->
+    Migration.createTable 'ParentModel', (t) ->
+      t.addColumn 'id', 'INTEGER', primaryKey: true
+
+    Migration.createTable 'ChildModel', (t) ->
+      t.addColumn 'id', 'INTEGER', primaryKey: true
+      t.addReference 'parentModelId', 'ParentModel'
+
+    class ParentModel
+      class ChildModel
+        ModelBaseMixin.includeInto this
+        constructor: -> @initModel()
+        @belongsTo ParentModel
+
+      ModelBaseMixin.includeInto this
+      constructor: -> @initModel()
+      @hasOne ChildModel
+
+    mapper = new Mapper path.resolve(__dirname, 'temp/test.db')
+    mapper.sync().then -> done()
+    .catch (err) -> done(err)
+
+  afterEach (done) ->
+    FakeModel.drop().then ->
+      mapper.close()
+      done()
+    .catch(done)
+
+  it 'hasOne', ->

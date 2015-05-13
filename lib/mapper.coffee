@@ -31,6 +31,7 @@ class Mapper
 
   sync: ->
     @getDB().then =>
+      Migration._finishConfig()
       createPromises = for tableName, tableInfo of Migration.tables
         # extend the model class's attributes
         ModelBase.models[tableName]?.extendModel this, tableInfo
