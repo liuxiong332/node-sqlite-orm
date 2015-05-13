@@ -114,4 +114,20 @@ describe 'ModelBaseMixin association', ->
     .then -> done()
     .catch done
 
-  it 'hasOne', ->
+  it 'hasOne', (done) ->
+    child = new ChildModel
+    child.name = 'child'
+    parent = new ParentModel
+    parent.name = 'parent'
+    child.save().then ->
+      parent.save()
+    .then ->
+      parent.childModel = child
+      parent.childModel.should.equal child
+      child.parentModel.should.equal parent
+      child.parentModelId.should.equal parent.id
+    .then ->
+      parent.childModel = null
+      child.save()
+    .then -> done()
+    .catch done

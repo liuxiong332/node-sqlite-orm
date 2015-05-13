@@ -68,7 +68,8 @@ class ModelBaseMixin extends Mixin
     if (opts = ChildModel.belongsToAssos.get(ParentModel))?
       child[privateName(opts.as)] = parent
       # set the foreign key
-      child[opts.through] = parent?[ParentModel.primaryKeyName] ? null
+      primaryVal = if parent then parent[ParentModel.primaryKeyName] else null
+      child[opts.through] = primaryVal
 
   defaultThrough = (ParentModel) ->
     camelCase(ParentModel.name) + pascalCase(ParentModel.primaryKeyName)
@@ -113,9 +114,10 @@ class ModelBaseMixin extends Mixin
       Object.defineProperty @prototype, opts.as,
         get: -> this[key]
         set: (val) ->
-          setBelongsTo(Model, ChildModel, null, this[key])
+          origin = this[key]
+          setBelongsTo(Model, ChildModel, null, origin) if origin
           this[key] = val
-          setBelongsTo(Model, ChildModel, this, val)
+          setBelongsTo(Model, ChildModel, this, val) if val
 
   @find: (where, opts={}) ->
     opts.limit = 1
