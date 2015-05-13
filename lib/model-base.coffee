@@ -89,7 +89,7 @@ class ModelBaseMixin extends Mixin
       opts.as ?= camelCase(ParentModel.name)
       key = privateName(opts.as)
       Object.defineProperty @prototype, opts.as,
-        get: -> this[key]
+        get: -> this[key] ? null
         set: (val) ->
           origin = this[key]
           setBelongsTo(ParentModel, Model, val, this)
@@ -136,7 +136,7 @@ class ModelBaseMixin extends Mixin
       opts.as ?= camelCase(ChildModel.name)
       key = privateName(opts.as)
       Object.defineProperty @prototype, opts.as,
-        get: -> this[key]
+        get: -> this[key] ? null
         set: (val) ->
           origin = this[key]
           setBelongsTo(Model, ChildModel, null, origin) if origin
@@ -153,7 +153,10 @@ class ModelBaseMixin extends Mixin
 
   @findAll: (where, opts) ->
     @query.select(@tableName, @wrapWhere(where), opts).then (results) =>
+      console.log 'findAll'
+      console.log results
       promises = for res in results
+        console.log res
         @load(res)
       Q.all promises
 
@@ -193,6 +196,7 @@ class ModelBaseMixin extends Mixin
       Q(model)
     else
       @query.selectOne(@tableName, @wrapWhere(id)).then (res) =>
+        console.log res
         @loadNoCache(res)
 
   @loadNoCache: (obj) ->
@@ -215,27 +219,33 @@ class ModelBaseMixin extends Mixin
     Q.all [@loadBelongsTo(model), @loadHasOne(model), @loadHasMany(model)]
 
   @loadBelongsTo: (model) ->
-    promises = for index in @belongsToAssos
-      [opts, ParentModel] = index
-      if (id = model[opts.through])
-        ParentModel.getById(id).then (parent) ->
+    console.log 'loadBelongsTo'
+    promises = []
+    @belongsToAssos.forEach (opts, ParentModel) ->
+      if (id = model[opts.through])?
+        console.log id
+        promises.push ParentModel.getById(id).then (parent) ->
           model[opts.as] = parent
-      else Q(null)
     Q.all promises
 
   @loadHasOne: (model) ->
     keyName = @primaryKeyName
-    promises = for index in @hasOneAssos
-      [opts, ChildModel] = index
-      ChildModel.find({"#{opts.through}": model[keyName]}).then (child) ->
+    promises = []
+    @hasOneAssos.forEach (opts, ChildModel) ->
+      console.log opts
+      where = "#{opts.through}": model[keyName]
+      promises.push ChildModel.find(where).then (child) ->
         model[opts.as] = child
     Q.all promises
 
   @loadHasMany: (model) ->
     keyName = @primaryKeyName
-    promises = for index in @hasOneAssos
-      [opts, ChildModel] = index
-      ChildModel.findAll({"#{opts.through}": model[keyName]}).then (children) ->
+    promises = []
+    @hasManyAssos.forEach (opts, ChildModel) ->
+      where = "#{opts.through}": model[keyName]
+      console.log opts
+      promises.push ChildModel.findAll(where).then (children) ->
+        console.log children
         model[opts.as].splice(0, 0, children)
     Q.all promises
 
