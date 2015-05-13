@@ -4,9 +4,6 @@ _ = require 'underscore'
 module.exports =
 class ModelBaseMixin extends Mixin
   @models = {}
-  @belongsToAssos = new Map
-  @hasOneAssos = new Map
-  @hasManyAssos = new Map
 
   initModel: ->
     @isInsert = false
@@ -15,6 +12,8 @@ class ModelBaseMixin extends Mixin
 
   @included: ->
     ModelBaseMixin.models[this.name] = this if this.name
+    @belongsToAssos = new Map
+    @hasOneAssos = new Map
 
   @defineAttr: (name, opts) ->
     key = '_' + name

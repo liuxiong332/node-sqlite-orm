@@ -92,11 +92,12 @@ describe 'ModelBaseMixin association', ->
     ParentModel.drop().then ->
       ChildModel.drop()
     .then ->
+      Migration.clear()
       mapper.close()
       done()
     .catch(done)
 
-  it 'belongsTo', ->
+  it 'belongsTo', (done) ->
     child = new ChildModel
     child.name = 'child'
     parent = new ParentModel
@@ -110,3 +111,7 @@ describe 'ModelBaseMixin association', ->
       parent.childModel.should.equal child
     .then ->
       child.save()
+    .then -> done()
+    .catch done
+
+  it 'hasOne', ->
