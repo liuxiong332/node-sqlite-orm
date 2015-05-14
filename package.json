@@ -1,7 +1,7 @@
 {
   "name": "sqlite-orm",
   "description": "the ORM framework for sqlite",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "homepage": "https://github.com/liuxiong332/sqlite-orm",
   "bugs": "https://github.com/liuxiong332/sqlite-orm/issues",
   "license": "MIT",
@@ -27,6 +27,7 @@
   "devDependencies": {
     "coffee-script": "^1.9.2",
     "coveralls": "^2.11.1",
+    "del": "^1.1.1",
     "gulp": "^3.8.8",
     "gulp-bump": "^0.1.11",
     "gulp-coffee": "^2.3.1",

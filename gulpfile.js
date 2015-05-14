@@ -2,6 +2,8 @@
 
 var gulp   = require('gulp');
 var plugins = require('gulp-load-plugins')();
+var del = require('del');
+
 var CI = process.env.CI === 'true';
 
 require('coffee-script/register')
@@ -51,7 +53,11 @@ gulp.task('watch', ['test'], function () {
 
 gulp.task('release', ['bump']);
 
-gulp.task('dist', function () {
+gulp.task('clean', function(cb) {
+  del(['dist/**/*'], cb);
+});
+
+gulp.task('dist', ['clean'], function () {
   return gulp.src(paths.coffee, {base: './lib'})
     .pipe(plugins.coffee({bare: true})).on('error', plugins.util.log)
     .pipe(gulp.dest('./dist'));
