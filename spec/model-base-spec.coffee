@@ -4,7 +4,7 @@ Migration = require '../lib/migration'
 path = require 'path'
 Q = require 'q'
 
-describe.skip 'ModelBaseMixin', ->
+describe 'ModelBaseMixin', ->
   [mapper, FakeModel] = []
 
   beforeEach (done) ->
@@ -110,80 +110,80 @@ describe 'ModelBaseMixin 1-1 association', ->
       done()
     .catch(done)
 
-  # it 'belongsTo', (done) ->
-  #   child = new ChildModel
-  #   child.name = 'child'
-  #   parent = new ParentModel
-  #   parent.name = 'parent'
-  #   child.save().then ->
-  #     parent.save()
-  #   .then ->
-  #     child.parentModel = parent
-  #     child.parentModel.should.equal parent
-  #     child.parentModelId.should.equal parent.id
-  #     parent.childModel.should.equal child
-  #   .then ->
-  #     child.save()
-  #   .then -> done()
-  #   .catch done
+  it 'belongsTo', (done) ->
+    child = new ChildModel
+    child.name = 'child'
+    parent = new ParentModel
+    parent.name = 'parent'
+    child.save().then ->
+      parent.save()
+    .then ->
+      child.parentModel = parent
+      child.parentModel.should.equal parent
+      child.parentModelId.should.equal parent.id
+      parent.childModel.should.equal child
+    .then ->
+      child.save()
+    .then -> done()
+    .catch done
 
-  # it 'hasOne', (done) ->
-  #   child = new ChildModel
-  #   child.name = 'child'
-  #   parent = new ParentModel
-  #   parent.name = 'parent'
-  #   child.save().then ->
-  #     parent.save()
-  #   .then ->
-  #     parent.childModel = child
-  #     parent.childModel.should.equal child
-  #     child.parentModel.should.equal parent
-  #     child.parentModelId.should.equal parent.id
-  #   .then ->
-  #     parent.childModel = null
-  #     child.save()
-  #   .then -> done()
-  #   .catch done
+  it 'hasOne', (done) ->
+    child = new ChildModel
+    child.name = 'child'
+    parent = new ParentModel
+    parent.name = 'parent'
+    child.save().then ->
+      parent.save()
+    .then ->
+      parent.childModel = child
+      parent.childModel.should.equal child
+      child.parentModel.should.equal parent
+      child.parentModelId.should.equal parent.id
+    .then ->
+      parent.childModel = null
+      child.save()
+    .then -> done()
+    .catch done
 
-  # it 'belongsTo N-1', (done) ->
-  #   child = new SomeModel
-  #   child.name = 'child'
-  #   parent = new ParentModel
-  #   parent.name = 'parent'
-  #   child.save().then ->
-  #     parent.save()
-  #   .then ->
-  #     child.parentModel = parent
-  #     child.parentModel.should.equal parent
-  #     child.parentModelId.should.equal parent.id
-  #     parent.someModels[0].should.equal child
+  it 'belongsTo N-1', (done) ->
+    child = new SomeModel
+    child.name = 'child'
+    parent = new ParentModel
+    parent.name = 'parent'
+    child.save().then ->
+      parent.save()
+    .then ->
+      child.parentModel = parent
+      child.parentModel.should.equal parent
+      child.parentModelId.should.equal parent.id
+      parent.someModels[0].should.equal child
 
-  #     child.parentModel = null
-  #     parent.someModels.length.should.equal 0
-  #   .then -> done()
-  #   .catch done
+      child.parentModel = null
+      parent.someModels.length.should.equal 0
+    .then -> done()
+    .catch done
 
-  # it 'hasMany', (done) ->
-  #   child = new SomeModel name: 'child'
-  #   parent = new ParentModel name: 'parent'
-  #   child.save().then ->
-  #     parent.save()
-  #   .then ->
-  #     parent.someModels.push child
-  #     Q.delay(0)
-  #   .then ->
-  #     child.parentModelId.should.equal parent.id
-  #     child.parentModel.should.equal parent
-  #     parent.someModels.pop()
-  #     Q.delay(0)
-  #   .then ->
-  #     (child.parentModelId is null).should.ok
-  #   .then ->
-  #     mapper.cache.clear()
-  #     SomeModel.getById(1)
-  #   .then (model) ->
-  #     done()
-  #   .catch done
+  it 'hasMany', (done) ->
+    child = new SomeModel name: 'child'
+    parent = new ParentModel name: 'parent'
+    child.save().then ->
+      parent.save()
+    .then ->
+      parent.someModels.push child
+      Q.delay(0)
+    .then ->
+      child.parentModelId.should.equal parent.id
+      child.parentModel.should.equal parent
+      parent.someModels.pop()
+      Q.delay(0)
+    .then ->
+      (child.parentModelId is null).should.ok
+    .then ->
+      mapper.cache.clear()
+      SomeModel.getById(1)
+    .then (model) ->
+      done()
+    .catch done
 
   it 'load', (done) ->
     child = new SomeModel name: 'child'
@@ -197,7 +197,6 @@ describe 'ModelBaseMixin 1-1 association', ->
       mapper.cache.clear()
       SomeModel.getById(1)
     .then (child) ->
-      console.log child
-      console.log child.parentModel
+      child.parentModel.should.ok
       done()
     .catch done

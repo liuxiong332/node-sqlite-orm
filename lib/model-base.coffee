@@ -1,6 +1,8 @@
 Mixin = require 'mixto'
 _ = require 'underscore'
 Q = require 'q'
+ObserverArray = require './observer-array'
+util = require 'util'
 
 module.exports =
 class ModelBaseMixin extends Mixin
@@ -59,15 +61,16 @@ class ModelBaseMixin extends Mixin
       parent[privateName(opts.as)] = null
     else if (opts = ParentModel.hasManyAssos.get(ChildModel))?
       children = parent[opts.as]
-      index = children.indexOf(child)
-      children.splice(index, 1) if index isnt -1
+      children.scopeUnobserve ->
+        index = children.indexOf(child)
+        children.splice(index, 1) if index isnt -1
 
   addIntoHasAssos = (ParentModel, ChildModel, parent, child) ->
     if (opts = ParentModel.hasOneAssos.get(ChildModel))?
       parent[privateName(opts.as)] = child
     else if (opts = ParentModel.hasManyAssos.get(ChildModel))?
       children = parent[opts.as]
-      children.push(child)
+      children.scopeUnobserve -> children.push(child)
 
   setBelongsTo = (ParentModel, ChildModel, parent, child) ->
     if (opts = ChildModel.belongsToAssos.get(ParentModel))?
@@ -120,10 +123,10 @@ class ModelBaseMixin extends Mixin
       key = privateName(opts.as)
       Object.defineProperty @prototype, opts.as, get: ->
         unless (val = this[key])?
-          val = this[key] = []
-          Array.observe val, (changes) =>
+          val = this[key] = new ObserverArray (changes) =>
             for change in changes
               @_watchHasManyChange(change, val, Model, ChildModel)
+          val.observe()
         val
 
   @hasOne: (ChildModel, opts={}) ->
@@ -149,14 +152,11 @@ class ModelBaseMixin extends Mixin
     else
       opts.limit = 1
       @query.selectOne(@tableName, @wrapWhere(where), opts).then (res) =>
-        @load(res)
+        if res then @load(res) else null
 
   @findAll: (where, opts) ->
     @query.select(@tableName, @wrapWhere(where), opts).then (results) =>
-      console.log 'findAll'
-      console.log results
       promises = for res in results
-        console.log res
         @load(res)
       Q.all promises
 
@@ -196,8 +196,7 @@ class ModelBaseMixin extends Mixin
       Q(model)
     else
       @query.selectOne(@tableName, @wrapWhere(id)).then (res) =>
-        console.log res
-        @loadNoCache(res)
+        if res then @loadNoCache(res) else null
 
   @loadNoCache: (obj) ->
     model = new this
@@ -219,23 +218,20 @@ class ModelBaseMixin extends Mixin
     Q.all [@loadBelongsTo(model), @loadHasOne(model), @loadHasMany(model)]
 
   @loadBelongsTo: (model) ->
-    console.log 'loadBelongsTo'
     promises = []
     @belongsToAssos.forEach (opts, ParentModel) ->
       if (id = model[opts.through])?
-        console.log id
         promises.push ParentModel.getById(id).then (parent) ->
-          model[opts.as] = parent
+          model[privateName(opts.as)] = parent
     Q.all promises
 
   @loadHasOne: (model) ->
     keyName = @primaryKeyName
     promises = []
     @hasOneAssos.forEach (opts, ChildModel) ->
-      console.log opts
       where = "#{opts.through}": model[keyName]
       promises.push ChildModel.find(where).then (child) ->
-        model[opts.as] = child
+        model[privateName(opts.as)] = child
     Q.all promises
 
   @loadHasMany: (model) ->
@@ -243,10 +239,9 @@ class ModelBaseMixin extends Mixin
     promises = []
     @hasManyAssos.forEach (opts, ChildModel) ->
       where = "#{opts.through}": model[keyName]
-      console.log opts
       promises.push ChildModel.findAll(where).then (children) ->
-        console.log children
-        model[opts.as].splice(0, 0, children)
+        members = model[opts.as]
+        members.scopeUnobserve -> members.splice(0, 0, children)
     Q.all promises
 
   @new: (obj) ->
