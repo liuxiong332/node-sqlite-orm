@@ -41,7 +41,7 @@ class ModelBaseMixin extends Mixin
     @extendAttrs tableInfo
 
   @wrapWhere: (where) ->
-    unless _.isObject where
+    if where and not _.isObject where
       where = {"#{@primaryKeyName}": where}
     where
 
@@ -65,13 +65,13 @@ class ModelBaseMixin extends Mixin
         @load(res)
       Q.all promises
 
-  @each: (where, opts, step, complete) ->
+  @each: (where, opts, step) ->
     if _.isFunction(where)
       step = where
-      complete = opts
+      where = opts = null
     else if _.isFunction(opts)
       step = opts
-      complete = step
+      opts = null
     @query.selectEach(@tableName, @wrapWhere(where), opts, step)
 
   save: ->
