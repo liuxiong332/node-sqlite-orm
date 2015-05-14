@@ -45,7 +45,9 @@ class Mapper
     Q.ninvoke @db, 'close'
 
   getQuery: -> @query
-
+  @Migration = Migration
+  @ModelBase = ModelBase
+  
   @INTEGER = 'INTEGER'
   @REAL = 'REAL'
   @TEXT = 'TEXT'

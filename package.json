@@ -1,11 +1,11 @@
 {
   "name": "sqlite-orm",
   "description": "the ORM framework for sqlite",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "homepage": "https://github.com/liuxiong332/sqlite-orm",
   "bugs": "https://github.com/liuxiong332/sqlite-orm/issues",
   "license": "MIT",
-  "main": "dist/sqlite-orm.js",
+  "main": "dist/mapper.js",
   "author": {
     "name": "liuxiong",
     "email": "liuxiong332@163.com"

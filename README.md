@@ -13,15 +13,96 @@ $ npm install --save sqlite-orm
 
 ## Usage
 
-```javascript
-var sqliteOrm = require('sqlite-orm');
-sqliteOrm(); // "awesome"
+```coffeescript
+var Mapper = require('sqlite-orm');
+var Migration = Mapper.Migration
+
+Migration.createTable 'ParentModel', (t) ->
+  t.addColumn 'id', 'INTEGER', primaryKey: true
+  t.addColumn 'name', 'TEXT'
+
+Migration.createTable 'ChildModel', (t) ->
+  t.addColumn 'id', 'INTEGER', primaryKey: true
+  t.addColumn 'name', 'TEXT'
+  t.addReference 'parentModelId', 'ParentModel'
+
+class ParentModel
+  ModelBaseMixin.includeInto this
+  constructor: (params) -> @initModel params
+  @hasOne ChildModel
+
+class ChildModel
+  ModelBaseMixin.includeInto this
+  constructor: (params) -> @initModel params
+  @belongsTo ParentModel
+
+  mapper = new Mapper path.resolve(__dirname, 'temp/test.db')
+  mapper.sync()
 ```
 
 ## API
 
-_(Coming soon)_
+### Mapper
 
+**sync** `function()` synchronize the model definition and the database
+
+  *return*: `Promise`
+
+**close** `function()` close the database
+
+  *return*: `Promise`
+
+**Migration** `Migration` get the Migration class
+
+**ModelBase** `ModelBase` get the ModelBase class
+
+### Migration
+
+**createTable**: `function(tableName, callback)` create the database table
+
+  *tableName*: `String`
+
+  *callback*: `function(tableInfo)` create the columns in this callback
+
+    *tableInfo*: `TableInfo` the class to create the columns and index
+
+**clear**: `function()` clear the table definition
+
+### TableInfo
+
+**addColumn**: `function(name, type, opts)` add the table column
+
+  *name*: `String` the column name
+
+  *type*: `String` the column data type, such as `INTEGER` or `TEXT`
+
+  *opts*: `Object` the column options
+
+**addIndex**: `function(names...)` add index for the specific column
+
+  *names*: `Array` the column names that need index
+
+**addReference**: `function(name, tableName, opts)` add foreign key
+
+  *name*: the column name that need index
+
+  *tableName*: the name of table that the index will point to
+
+  *opts*: `Object` the index options
+
+### ModelBase
+
+**@new**: `function(obj)` create a new model object, not saved into database
+
+  *obj*: `Object` the attributes list
+
+**@create**: `function(obj)` just like `@new`, but save into database
+
+**@drop**: `function()` drop the table
+
+**@find**: `function(where, opts)` find the object that match the `where` statement
+
+**@findAll**: `function(where, opts)` find all of object match the condition
 
 ## Contributing
 
