@@ -13,9 +13,13 @@ $ npm install --save sqlite-orm
 
 ## Usage
 
+the coffeescript sample code
+
 ```coffeescript
 Mapper = require 'sqlite-orm'
+path = require 'path'
 Migration = Mapper.Migration
+ModelBase = Mapper.ModelBase
 
 Migration.createTable 'ParentModel', (t) ->
   t.addColumn 'id', 'INTEGER', primaryKey: true
@@ -27,17 +31,55 @@ Migration.createTable 'ChildModel', (t) ->
   t.addReference 'parentModelId', 'ParentModel'
 
 class ParentModel
-  ModelBaseMixin.includeInto this
+
+  class ChildModel
+    ModelBase.includeInto this
+    constructor: (params) -> @initModel params
+    @belongsTo ParentModel
+
+  ModelBase.includeInto this
   constructor: (params) -> @initModel params
   @hasOne ChildModel
 
-class ChildModel
-  ModelBaseMixin.includeInto this
-  constructor: (params) -> @initModel params
-  @belongsTo ParentModel
+mapper = new Mapper path.resolve(__dirname, 'test.db')
+mapper.sync()
+```
 
-  mapper = new Mapper path.resolve(__dirname, 'temp/test.db')
-  mapper.sync()
+the corresponding javascript code
+
+```javascript
+var Mapper = require('sqlite-orm');
+var Migration = Mapper.Migration;
+var ModelBase = Mapper.ModelBase;
+var path = require('path');
+
+Migration.createTable('ParentModel', function(t) {
+  t.addColumn('id', 'INTEGER', {primaryKey: true});
+  t.addColumn('name', 'TEXT');
+});
+
+Migration.createTable('ChildModel', function(t) {
+  t.addColumn('id', 'INTEGER', {primaryKey: true});
+  t.addColumn('name', 'TEXT');
+  t.addReference('parentModelId', 'ParentModel');
+});
+
+function ParentModel(params) {
+  this.initModel(params);
+}
+ModelBase.includeInto(ParentModel);
+
+function ChildModel(params) {
+  this.initModel(params);
+}
+ModelBase.includeInto(ChildModel);
+
+ParentModel.hasOne(ChildModel);
+ChildModel.belongsTo(ParentModel);
+
+mapper = new Mapper(path.resolve(__dirname, 'test.db'));
+mapper.sync().then(function() {
+});
 ```
 
 ## API
