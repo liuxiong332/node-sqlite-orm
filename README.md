@@ -14,8 +14,8 @@ $ npm install --save sqlite-orm
 ## Usage
 
 ```coffeescript
-var Mapper = require('sqlite-orm');
-var Migration = Mapper.Migration
+Mapper = require 'sqlite-orm'
+Migration = Mapper.Migration
 
 Migration.createTable 'ParentModel', (t) ->
   t.addColumn 'id', 'INTEGER', primaryKey: true
