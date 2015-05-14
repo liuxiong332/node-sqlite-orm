@@ -146,9 +146,15 @@ class ModelBaseMixin extends Mixin
           this[key] = val
           setBelongsTo(Model, ChildModel, this, val) if val
 
+  @getIdFromWhere: (where) ->
+    return where unless _.isObject(where)
+    keys = _.keys(where)
+    if keys.length is 1 and keys[0] is @primaryKeyName
+      keys[0]
+
   @find: (where, opts={}) ->
-    unless _.isObject(where)
-      @getById(where)
+    if (primaryVal = @getIdFromWhere(where))?
+      @getById(primaryVal)
     else
       opts.limit = 1
       @query.selectOne(@tableName, @wrapWhere(where), opts).then (res) =>
