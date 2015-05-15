@@ -98,6 +98,14 @@ mapper.sync().then(function() {
 
 **ModelBase** `ModelBase` get the ModelBase class
 
+**INTEGER** `String` the INTEGER data type
+
+**REAL** `String` the REAL data type
+
+**TEXT** `String` the TEXT data type
+
+**BLOB** `String` the BLOB data type
+
 ### Migration
 
 **createTable**: `function(tableName, callback)` create the database table
