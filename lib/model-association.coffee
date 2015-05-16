@@ -136,5 +136,5 @@ class ModelAssociation extends Mixin
       where = "#{opts.through}": model[keyName]
       promises.push ChildModel.findAll(where).then (children) ->
         members = model[opts.as]
-        members.scopeUnobserve -> members.splice(0, 0, children)
+        members.scopeUnobserve -> members.splice(0, 0, children...)
     Q.all promises

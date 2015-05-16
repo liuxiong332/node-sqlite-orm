@@ -185,3 +185,50 @@ describe 'ModelBaseMixin 1-1 association', ->
       child.parentModel.should.ok
       done()
     .catch done
+
+describe 'ModelBaseMixin association to self', ->
+  [Model, mapper] = []
+
+  beforeEach (done) ->
+    Migration.createTable 'Model', (t) ->
+      t.addColumn 'name', 'TEXT'
+      t.addReference 'parentId', 'Model'
+
+    class Model
+      ModelBaseMixin.includeInto this
+      constructor: (params) -> @initModel params
+      @belongsTo Model, {through: 'parentId', as: 'parent'}
+      @hasMany Model, {as: 'children'}
+
+    mapper = new Mapper path.resolve(__dirname, 'temp/test.db')
+    mapper.sync().then -> done()
+    .catch (err) -> done(err)
+
+  afterEach (done) ->
+    Model.drop().then ->
+      Migration.clear()
+      mapper.close()
+      done()
+    .catch(done)
+
+  it 'belongsTo and hasMany', (done) ->
+    models = for i in [0..2]
+      new Model name: "model#{i}"
+    Q.all (model.save() for model in models)
+    .then ->
+      models[0].children.splice(0, 0, models[1], models[2])
+      Q.delay(0)
+    .then ->
+      models[0].children.length.should.equal 2
+      models[1].parent.should.equal models[0]
+      models[2].parent.should.equal models[0]
+      Q.all (model.save() for model in models)
+    .then ->
+      mapper.cache.clear()
+      Model.getById(1)
+    .then (model0) ->
+      model0.children.length.should.equal 2
+      model0.children[0].parent.should.equal model0
+      model0.children[1].parent.should.equal model0
+    .then -> done()
+    .catch done
