@@ -1,7 +1,7 @@
 _ = require 'underscore'
 
 class TableInfo
-  constructor: (@tableName) ->
+  constructor: (@tableName, opts) ->
     @attributes = {}
     @references = {}
 
@@ -18,6 +18,9 @@ class TableInfo
     opts.references = _.extend {name: tableName}, opts
     @references[name] = opts
 
+  _checkPrimaryKey: ->
+    @addColumn('id', 'INTEGER', primaryKey: true) unless @primaryKeyName
+
   _finishConfig: ->
     for name, {references} of @references
       references.fields ?= Migration.tables[references.name].primaryKeyName
@@ -26,13 +29,16 @@ module.exports =
 class Migration
   @tables = {}
 
-  @createTable: (tableName, callback) ->
-    tableInfo = new TableInfo(tableName)
-    callback(tableInfo)
+  @createTable: (tableName, opts={}, callback) ->
+    if _.isFunction(opts)
+      callback = opts
+      opts = {}
+    tableInfo = new TableInfo(tableName, opts)
+    callback?(tableInfo)
     @tables[tableName] = tableInfo
 
   @_finishConfig: ->
-    for name, info of @tables
-      info._finishConfig()
+    info._checkPrimaryKey() for name, info of @tables
+    info._finishConfig() for name, info of @tables
 
   @clear: -> @tables = {}

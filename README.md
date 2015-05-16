@@ -22,11 +22,9 @@ Migration = Mapper.Migration
 ModelBase = Mapper.ModelBase
 
 Migration.createTable 'ParentModel', (t) ->
-  t.addColumn 'id', 'INTEGER', primaryKey: true
   t.addColumn 'name', 'TEXT'
 
 Migration.createTable 'ChildModel', (t) ->
-  t.addColumn 'id', 'INTEGER', primaryKey: true
   t.addColumn 'name', 'TEXT'
   t.addReference 'parentModelId', 'ParentModel'
 
@@ -54,12 +52,10 @@ var ModelBase = Mapper.ModelBase;
 var path = require('path');
 
 Migration.createTable('ParentModel', function(t) {
-  t.addColumn('id', 'INTEGER', {primaryKey: true});
   t.addColumn('name', 'TEXT');
 });
 
 Migration.createTable('ChildModel', function(t) {
-  t.addColumn('id', 'INTEGER', {primaryKey: true});
   t.addColumn('name', 'TEXT');
   t.addReference('parentModelId', 'ParentModel');
 });

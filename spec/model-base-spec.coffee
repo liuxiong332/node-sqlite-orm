@@ -13,7 +13,6 @@ describe 'ModelBaseMixin', ->
       constructor: ->
         @initModel()
       Migration.createTable 'FakeModel', (t) ->
-        t.addColumn 'id', 'INTEGER', primaryKey: true
         t.addColumn 'name', 'INTEGER'
         t.addColumn 'email', 'TEXT'
 
@@ -67,16 +66,13 @@ describe 'ModelBaseMixin 1-1 association', ->
   [ParentModel, ChildModel, SomeModel, mapper] = []
   beforeEach (done) ->
     Migration.createTable 'ParentModel', (t) ->
-      t.addColumn 'id', 'INTEGER', primaryKey: true
       t.addColumn 'name', 'TEXT'
 
     Migration.createTable 'ChildModel', (t) ->
-      t.addColumn 'id', 'INTEGER', primaryKey: true
       t.addColumn 'name', 'TEXT'
       t.addReference 'parentModelId', 'ParentModel'
 
     Migration.createTable 'SomeModel', (t) ->
-      t.addColumn 'id', 'INTEGER', primaryKey: true
       t.addColumn 'name', 'TEXT'
       t.addReference 'parentModelId', 'ParentModel'
 
