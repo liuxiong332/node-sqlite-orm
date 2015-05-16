@@ -101,9 +101,7 @@ describe 'ModelBaseMixin 1-1 association', ->
     .catch (err) -> done(err)
 
   afterEach (done) ->
-    ParentModel.drop().then ->
-      ChildModel.drop()
-    .then -> SomeModel.drop()
+    Q.all [ParentModel.drop(), ChildModel.drop(), SomeModel.drop()]
     .then ->
       Migration.clear()
       mapper.close()
@@ -111,12 +109,9 @@ describe 'ModelBaseMixin 1-1 association', ->
     .catch(done)
 
   it 'belongsTo', (done) ->
-    child = new ChildModel
-    child.name = 'child'
-    parent = new ParentModel
-    parent.name = 'parent'
-    child.save().then ->
-      parent.save()
+    child = new ChildModel name: 'child'
+    parent = new ParentModel name: 'parent'
+    Q.all [child.save(), parent.save()]
     .then ->
       child.parentModel = parent
       child.parentModel.should.equal parent
@@ -128,12 +123,9 @@ describe 'ModelBaseMixin 1-1 association', ->
     .catch done
 
   it 'hasOne', (done) ->
-    child = new ChildModel
-    child.name = 'child'
-    parent = new ParentModel
-    parent.name = 'parent'
-    child.save().then ->
-      parent.save()
+    child = new ChildModel name: 'child'
+    parent = new ParentModel name: 'parent'
+    Q.all [child.save(), parent.save()]
     .then ->
       parent.childModel = child
       parent.childModel.should.equal child
@@ -146,12 +138,9 @@ describe 'ModelBaseMixin 1-1 association', ->
     .catch done
 
   it 'belongsTo N-1', (done) ->
-    child = new SomeModel
-    child.name = 'child'
-    parent = new ParentModel
-    parent.name = 'parent'
-    child.save().then ->
-      parent.save()
+    child = new SomeModel name: 'child'
+    parent = new ParentModel name: 'parent'
+    Q.all [child.save(), parent.save()]
     .then ->
       child.parentModel = parent
       child.parentModel.should.equal parent
