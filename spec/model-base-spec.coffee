@@ -76,21 +76,26 @@ describe 'ModelBaseMixin 1-1 association', ->
       t.addColumn 'name', 'TEXT'
       t.addReference 'parentModelId', 'ParentModel'
 
-    class ParentModel
-      class ChildModel
-        ModelBaseMixin.includeInto this
-        constructor: (params) -> @initModel params
-        @belongsTo ParentModel
-
-      class SomeModel
-        ModelBaseMixin.includeInto this
-        constructor: (params) -> @initModel params
-        @belongsTo ParentModel
-
+    class ChildModel
       ModelBaseMixin.includeInto this
       constructor: (params) -> @initModel params
-      @hasOne ChildModel
-      @hasMany SomeModel
+
+      @initAssos: ->
+        @belongsTo ParentModel
+
+    class SomeModel
+      ModelBaseMixin.includeInto this
+      constructor: (params) -> @initModel params
+
+      @initAssos: ->
+        @belongsTo ParentModel
+
+    class ParentModel
+      ModelBaseMixin.includeInto this
+      constructor: (params) -> @initModel params
+      @initAssos: ->
+        @hasOne ChildModel
+        @hasMany SomeModel
 
     mapper = new Mapper path.resolve(__dirname, 'temp/test.db')
     mapper.sync().then -> done()

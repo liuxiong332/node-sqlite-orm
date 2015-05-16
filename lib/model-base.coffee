@@ -16,7 +16,7 @@ class ModelBaseMixin extends Mixin
 
   @included: ->
     ModelBaseMixin.models[this.name] = this if this.name
-    @initAssos()
+    @_initAssos()
 
   @defineAttr: (name, opts) ->
     key = '_' + name

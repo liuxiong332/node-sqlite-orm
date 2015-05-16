@@ -5,7 +5,7 @@ _ = require 'underscore'
 
 module.exports =
 class ModelAssociation extends Mixin
-  @initAssos: ->
+  @_initAssos: ->
     @belongsToAssos = new Map
     @hasOneAssos = new Map
     @hasManyAssos = new Map
