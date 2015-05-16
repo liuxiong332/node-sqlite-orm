@@ -81,7 +81,6 @@ class ModelAssociation extends Mixin
   @extendHasMany: ->
     Model = this
     @hasManyAssos.forEach (opts, ChildModel) =>
-      opts.through ?= defaultThrough(this)
       opts.as ?= camelCase(ChildModel.name) + 's'
       key = privateName(opts.as)
       Object.defineProperty @prototype, opts.as, get: ->
@@ -98,7 +97,6 @@ class ModelAssociation extends Mixin
   @extendHasOne: ->
     Model = this
     @hasOneAssos.forEach (opts, ChildModel) =>
-      opts.through ?= defaultThrough(this)
       opts.as ?= camelCase(ChildModel.name)
       key = privateName(opts.as)
       Object.defineProperty @prototype, opts.as,
@@ -123,7 +121,8 @@ class ModelAssociation extends Mixin
   @loadHasOne: (model) ->
     keyName = @primaryKeyName
     promises = []
-    @hasOneAssos.forEach (opts, ChildModel) ->
+    @hasOneAssos.forEach (opts, ChildModel) =>
+      opts.through ?= ChildModel.belongsToAssos.get(this).through
       where = "#{opts.through}": model[keyName]
       promises.push ChildModel.find(where).then (child) ->
         model[privateName(opts.as)] = child
@@ -132,7 +131,8 @@ class ModelAssociation extends Mixin
   @loadHasMany: (model) ->
     keyName = @primaryKeyName
     promises = []
-    @hasManyAssos.forEach (opts, ChildModel) ->
+    @hasManyAssos.forEach (opts, ChildModel) =>
+      opts.through ?= ChildModel.belongsToAssos.get(this).through
       where = "#{opts.through}": model[keyName]
       promises.push ChildModel.findAll(where).then (children) ->
         members = model[opts.as]

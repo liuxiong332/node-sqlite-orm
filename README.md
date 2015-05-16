@@ -142,6 +142,40 @@ mapper.sync().then(function() {
 
 ### ModelBase
 
+**@hasOne**: `function(ChildModel, opts)` declare this Model has one child Model
+
+  *ChildModel*: `ModelBase` the child Model class
+
+  *opts*: `Object` the options used for hasOne association
+
+    *as*: `String`(optional) the property name to refer to the ChildModel instance,
+    the default value is "#{childModel}". e.g. ChildModel is 'ChildModel', then the as
+    value is `childModel`
+
+**@hasMany**: `function(ChildModel, opts)` declare this Model has many children.
+
+*ChildModel*: `ModelBase` the child Model class
+
+*opts*: `Object` the options used for hasOne association
+
+  *as*: `String`(optional) the property name to refer to the ChildModel instances,
+  the default value is "#{childModels}". e.g. ChildModel is 'ChildModel', then the as
+  value is `childModels`
+
+**@belongsTo**: `function(ParentModel, opts)` declare this Model is member of ParentModel
+
+  *ParentModel*: `ModelBase` the parent Model class
+
+  *opts*: `Object` the options used for hasOne association
+
+    *through*: `String`(optional) the column name that used for foreign key,
+    the default value is "#{ParentModel}#{primaryKey}". e.g. ParentModel name is 'ParentModel',
+    primaryKey is 'id', then the foreign key is `parentModelId`.
+
+    *as*: `String`(optional) the property name to refer to the ParentModel instance,
+    the default value is "#{ParentModel}". e.g. ParentModel is 'ParentModel', then the as
+    value is `parentModel`
+
 **@new**: `function(obj)` create a new model object, not saved into database
 
   *obj*: `Object` the attributes list
