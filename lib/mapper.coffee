@@ -41,13 +41,16 @@ class Mapper
       Q.all(createPromises).then ->
         Model?.extendAssos() for name, Model of ModelBase.models
 
+  dropAllTables: ->
+    Q.all (model.drop() for name, model of ModelBase.models)
+
   close: ->
     Q.ninvoke @db, 'close'
 
   getQuery: -> @query
   @Migration = Migration
   @ModelBase = ModelBase
-  
+
   @INTEGER = 'INTEGER'
   @REAL = 'REAL'
   @TEXT = 'TEXT'

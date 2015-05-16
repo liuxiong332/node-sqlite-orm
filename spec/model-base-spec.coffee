@@ -23,7 +23,7 @@ describe 'ModelBaseMixin', ->
     .catch (err) -> done(err)
 
   afterEach (done) ->
-    FakeModel.drop()
+    mapper.dropAllTables()
     .then ->
       Migration.clear()
       mapper.close()
@@ -97,7 +97,7 @@ describe 'ModelBaseMixin 1-1 association', ->
     .catch (err) -> done(err)
 
   afterEach (done) ->
-    Q.all [ParentModel.drop(), ChildModel.drop(), SomeModel.drop()]
+    mapper.dropAllTables()
     .then ->
       Migration.clear()
       mapper.close()
