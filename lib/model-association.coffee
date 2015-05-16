@@ -6,16 +6,16 @@ _ = require 'underscore'
 module.exports =
 class ModelAssociation extends Mixin
   @_initAssos: ->
-    @belongsToAssos = new Map
-    @hasOneAssos = new Map
-    @hasManyAssos = new Map
+    @belongsToAssos = []
+    @hasOneAssos = []
+    @hasManyAssos = []
 
   @extendAssos: ->
     @extendBelongsTo()
     @extendHasOne()
     @extendHasMany()
 
-  removeFromHasAssos = (ParentModel, ChildModel, parent, child) ->
+  removeFromHasAssos = (parent, child, parentOpts) ->
     if (opts = ParentModel.hasOneAssos.get(ChildModel))?
       parent[privateName(opts.as)] = null
     else if (opts = ParentModel.hasManyAssos.get(ChildModel))?
@@ -31,12 +31,11 @@ class ModelAssociation extends Mixin
       children = parent[opts.as]
       children.scopeUnobserve -> children.push(child)
 
-  setBelongsTo = (ParentModel, ChildModel, parent, child) ->
-    if (opts = ChildModel.belongsToAssos.get(ParentModel))?
-      child[privateName(opts.as)] = parent
-      # set the foreign key
-      primaryVal = if parent then parent[ParentModel.primaryKeyName] else null
-      child[opts.through] = primaryVal
+  setBelongsTo = (parent, child, opts) ->
+    child[privateName(opts.as)] = parent
+    # set the foreign key
+    primaryVal = if parent then parent[opts.Target.primaryKeyName] else null
+    child[opts.through] = primaryVal
 
   camelCase = (str) -> str[0].toLowerCase() + str[1..]
   pascalCase = (str) -> str[0].toUpperCase() + str[1..]
@@ -46,19 +45,26 @@ class ModelAssociation extends Mixin
     camelCase(ParentModel.name) + pascalCase(ParentModel.primaryKeyName)
 
   @belongsTo: (ParentModel, opts={}) ->
-    @belongsToAssos.set ParentModel, opts
+    opts.through ?= defaultThrough(ParentModel)
+    opts.as ?= camelCase(ParentModel.name)
+    opts.Target = ParentModel
+    @belongsToAssos.push opts
+
+  findOptsInHasAssos = (ParentModel, opts) ->
+    for parentOpts in ParentModel.hasOneAssos.concat(ParentModel.hasManyAssos)
+      parentOpts.through ?= opts.through
+      return parentOpts if parentOpts.through is opts.through
 
   @extendBelongsTo: ->
     Model = this
-    @belongsToAssos.forEach (opts, ParentModel) =>
-      opts.through ?= defaultThrough(ParentModel)
-      opts.as ?= camelCase(ParentModel.name)
+    @belongsToAssos.forEach (opts) =>
       key = privateName(opts.as)
+      opts.targetOpts = findOptsInHasAssos(opts.Target, opts)
       Object.defineProperty @prototype, opts.as,
         get: -> this[key] ? null
         set: (val) ->
           origin = this[key]
-          setBelongsTo(ParentModel, Model, val, this)
+          setBelongsTo(val, this, opts)
           removeFromHasAssos(ParentModel, Model, origin, this) if origin
           addIntoHasAssos(ParentModel, Model, val, this) if val
 
@@ -76,14 +82,15 @@ class ModelAssociation extends Mixin
       setBelongsTo(Model, ChildModel, this, created)
 
   @hasMany: (ChildModel, opts={}) ->
-    @hasManyAssos.set ChildModel, opts
+    opts.as ?= camelCase(ChildModel.name) + 's'
+    opts.Target = ChildModel
+    @hasManyAssos.set opts.as, opts
 
   @extendHasMany: ->
     Model = this
-    @hasManyAssos.forEach (opts, ChildModel) =>
-      opts.as ?= camelCase(ChildModel.name) + 's'
-      key = privateName(opts.as)
-      Object.defineProperty @prototype, opts.as, get: ->
+    @hasManyAssos.forEach (opts, as) =>
+      key = privateName(as)
+      Object.defineProperty @prototype, as, get: ->
         unless (val = this[key])?
           val = this[key] = new ObserverArray (changes) =>
             for change in changes
@@ -92,14 +99,15 @@ class ModelAssociation extends Mixin
         val
 
   @hasOne: (ChildModel, opts={}) ->
-    @hasOneAssos.set ChildModel, opts
+    opts.as ?= camelCase(ChildModel.name)
+    opts.Target = ChildModel
+    @hasOneAssos.set opts.as, opts
 
   @extendHasOne: ->
     Model = this
-    @hasOneAssos.forEach (opts, ChildModel) =>
-      opts.as ?= camelCase(ChildModel.name)
-      key = privateName(opts.as)
-      Object.defineProperty @prototype, opts.as,
+    @hasOneAssos.forEach (opts, as) =>
+      key = privateName(as)
+      Object.defineProperty @prototype, as,
         get: -> this[key] ? null
         set: (val) ->
           origin = this[key]
