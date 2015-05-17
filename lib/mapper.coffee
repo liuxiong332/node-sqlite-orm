@@ -39,9 +39,8 @@ class Mapper
         @query.createTable(tableName, tableInfo.attributes)
 
       Q.all(createPromises).then ->
-        for name, Model of ModelBase.models
-          Model.initAssos?()
-          Model.extendAssos()
+        Model.initAssos?() for name, Model of ModelBase.models
+        Model.extendAssos() for name, Model of ModelBase.models
 
   dropAllTables: ->
     Q.all (model.drop() for name, model of ModelBase.models)

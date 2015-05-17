@@ -15,27 +15,18 @@ class ModelAssociation extends Mixin
     @extendHasOne()
     @extendHasMany()
 
-  removeFromHasAssos = (parent, child, parentOpts) ->
-    if (opts = ParentModel.hasOneAssos.get(ChildModel))?
-      parent[privateName(opts.as)] = null
-    else if (opts = ParentModel.hasManyAssos.get(ChildModel))?
-      children = parent[opts.as]
-      children.scopeUnobserve ->
-        index = children.indexOf(child)
-        children.splice(index, 1) if index isnt -1
-
-  addIntoHasAssos = (ParentModel, ChildModel, parent, child) ->
-    if (opts = ParentModel.hasOneAssos.get(ChildModel))?
-      parent[privateName(opts.as)] = child
-    else if (opts = ParentModel.hasManyAssos.get(ChildModel))?
-      children = parent[opts.as]
-      children.scopeUnobserve -> children.push(child)
-
-  setBelongsTo = (parent, child, opts) ->
-    child[privateName(opts.as)] = parent
+  setBelongsTo = (childOpts, parent, child) ->
+    child[privateName(childOpts.as)] = parent
     # set the foreign key
-    primaryVal = if parent then parent[opts.Target.primaryKeyName] else null
-    child[opts.through] = primaryVal
+    targetName = childOpts.Target.primaryKeyName
+    primaryVal = if parent then parent[targetName] else null
+    child[childOpts.through] = primaryVal
+
+  getHandlerInBelongsAssos = (Model, parentOpts) ->
+    for childOpts in parentOpts.Target.belongsToAssos
+      parentOpts.through ?= childOpts.through
+      if childOpts.through is parentOpts.through and Model is childOpts.Target
+        return setBelongsTo.bind(null, childOpts)
 
   camelCase = (str) -> str[0].toLowerCase() + str[1..]
   pascalCase = (str) -> str[0].toUpperCase() + str[1..]
@@ -50,25 +41,52 @@ class ModelAssociation extends Mixin
     opts.Target = ParentModel
     @belongsToAssos.push opts
 
-  findOptsInHasAssos = (ParentModel, opts) ->
-    for parentOpts in ParentModel.hasOneAssos.concat(ParentModel.hasManyAssos)
-      parentOpts.through ?= opts.through
-      return parentOpts if parentOpts.through is opts.through
+  addIntoHasMany = (as, parent, child) ->
+    children = parent[as]
+    children.scopeUnobserve -> children.push(child)
+
+  changeFromHasOne = (as, parent, child) ->
+    parent[privateName(as)] = child
+
+  removeFromHasMany = (as, parent, child) ->
+    children = parent[as]
+    children.scopeUnobserve ->
+      index = children.indexOf(child)
+      children.splice(index, 1) if index isnt -1
+
+  # compare the parentOpts with childOpts
+  compareParentOpts = (parentOpts, Model, childOpts) ->
+    parentOpts.through ?= childOpts.through
+    parentOpts.through is childOpts.through and parentOpts.Target is Model
+
+  getHandlerFromHasAssos = (Model, childOpts) ->
+    ParentModel = childOpts.Target
+    for parentOpts in ParentModel.hasOneAssos
+      if compareParentOpts parentOpts, Model, childOpts
+        changeHandler = changeFromHasOne.bind(null, parentOpts.as)
+        return {remove: changeHandler, add: changeHandler}
+
+    for parentOpts in ParentModel.hasManyAssos
+      if compareParentOpts parentOpts, Model, childOpts
+        as = parentOpts.as
+        remove = removeFromHasMany.bind(null, as)
+        add = addIntoHasMany.bind(null, as)
+        return {remove, add}
 
   @extendBelongsTo: ->
-    Model = this
     @belongsToAssos.forEach (opts) =>
       key = privateName(opts.as)
-      opts.targetOpts = findOptsInHasAssos(opts.Target, opts)
+      handler = getHandlerFromHasAssos(this, opts)
       Object.defineProperty @prototype, opts.as,
         get: -> this[key] ? null
         set: (val) ->
           origin = this[key]
-          setBelongsTo(val, this, opts)
-          removeFromHasAssos(ParentModel, Model, origin, this) if origin
-          addIntoHasAssos(ParentModel, Model, val, this) if val
+          setBelongsTo(opts, val, this)
+          if handler
+            handler.remove(origin, this) if origin
+            handler.add(val, this) if val
 
-  _watchHasManyChange = (change, val, Model, ChildModel) ->
+  _watchHasManyChange = (change, val, handler) ->
     if change.type is 'update'
       removes = [change.oldValue]
       creates = [val[change.name]]
@@ -77,72 +95,70 @@ class ModelAssociation extends Mixin
       index = change.index
       creates = val.slice(index, index + change.addedCount)
     for removed in removes when removed
-      setBelongsTo(Model, ChildModel, null, removed)
+      handler(null, removed)
     for created in creates when created
-      setBelongsTo(Model, ChildModel, this, created)
+      handler(this, created)
 
   @hasMany: (ChildModel, opts={}) ->
     opts.as ?= camelCase(ChildModel.name) + 's'
     opts.Target = ChildModel
-    @hasManyAssos.set opts.as, opts
+    @hasManyAssos.push opts
 
   @extendHasMany: ->
-    Model = this
-    @hasManyAssos.forEach (opts, as) =>
-      key = privateName(as)
-      Object.defineProperty @prototype, as, get: ->
+    @hasManyAssos.forEach (opts) =>
+      handler = getHandlerInBelongsAssos(this, opts)
+      key = privateName(opts.as)
+      Object.defineProperty @prototype, opts.as, get: ->
         unless (val = this[key])?
           val = this[key] = new ObserverArray (changes) =>
             for change in changes
-              _watchHasManyChange.call(this, change, val, Model, ChildModel)
+              _watchHasManyChange.call(this, change, val, handler)
           val.observe()
         val
 
   @hasOne: (ChildModel, opts={}) ->
     opts.as ?= camelCase(ChildModel.name)
     opts.Target = ChildModel
-    @hasOneAssos.set opts.as, opts
+    @hasOneAssos.push opts
 
   @extendHasOne: ->
-    Model = this
-    @hasOneAssos.forEach (opts, as) =>
-      key = privateName(as)
-      Object.defineProperty @prototype, as,
+    @hasOneAssos.forEach (opts) =>
+      handler = getHandlerInBelongsAssos(this, opts)
+      key = privateName(opts.as)
+      Object.defineProperty @prototype, opts.as,
         get: -> this[key] ? null
         set: (val) ->
           origin = this[key]
-          setBelongsTo(Model, ChildModel, null, origin) if origin
+          handler(null, origin) if origin
           this[key] = val
-          setBelongsTo(Model, ChildModel, this, val) if val
+          handler(this, val) if val
 
   @loadAssos: (model) ->
     Q.all [@loadBelongsTo(model), @loadHasOne(model), @loadHasMany(model)]
 
   @loadBelongsTo: (model) ->
     promises = []
-    @belongsToAssos.forEach (opts, ParentModel) ->
+    @belongsToAssos.forEach (opts) ->
       if (id = model[opts.through])?
-        promises.push ParentModel.getById(id).then (parent) ->
+        promises.push opts.Target.getById(id).then (parent) ->
           model[privateName(opts.as)] = parent
     Q.all promises
 
   @loadHasOne: (model) ->
     keyName = @primaryKeyName
     promises = []
-    @hasOneAssos.forEach (opts, ChildModel) =>
-      opts.through ?= ChildModel.belongsToAssos.get(this).through
+    @hasOneAssos.forEach (opts) ->
       where = "#{opts.through}": model[keyName]
-      promises.push ChildModel.find(where).then (child) ->
+      promises.push opts.Target.find(where).then (child) ->
         model[privateName(opts.as)] = child
     Q.all promises
 
   @loadHasMany: (model) ->
     keyName = @primaryKeyName
     promises = []
-    @hasManyAssos.forEach (opts, ChildModel) =>
-      opts.through ?= ChildModel.belongsToAssos.get(this).through
+    @hasManyAssos.forEach (opts) ->
       where = "#{opts.through}": model[keyName]
-      promises.push ChildModel.findAll(where).then (children) ->
+      promises.push opts.Target.findAll(where).then (children) ->
         members = model[opts.as]
         members.scopeUnobserve -> members.splice(0, 0, children...)
     Q.all promises
