@@ -23,9 +23,10 @@ class ModelAssociation extends Mixin
     child[childOpts.through] = primaryVal
 
   getHandlerInBelongsAssos = (Model, parentOpts) ->
-    for childOpts in parentOpts.Target.belongsToAssos
+    ParentModel = parentOpts.Target
+    for childOpts in ParentModel.belongsToAssos when childOpts.Target is Model
       parentOpts.through ?= childOpts.through
-      if childOpts.through is parentOpts.through and Model is childOpts.Target
+      if childOpts.through is parentOpts.through
         return setBelongsTo.bind(null, childOpts)
 
   camelCase = (str) -> str[0].toLowerCase() + str[1..]
@@ -54,24 +55,25 @@ class ModelAssociation extends Mixin
       index = children.indexOf(child)
       children.splice(index, 1) if index isnt -1
 
-  # compare the parentOpts with childOpts
-  compareParentOpts = (parentOpts, Model, childOpts) ->
-    parentOpts.through ?= childOpts.through
-    parentOpts.through is childOpts.through and parentOpts.Target is Model
+  findInhasAssos = (Model, assosList, childOpts, callback) ->
+    for parentOpts in assosList when parentOpts.Target is Model
+      parentOpts.through ?= childOpts.through
+      return callback(parentOpts) if parentOpts.through is childOpts.through
 
-  getHandlerFromHasAssos = (Model, childOpts) ->
-    ParentModel = childOpts.Target
-    for parentOpts in ParentModel.hasOneAssos
-      if compareParentOpts parentOpts, Model, childOpts
-        changeHandler = changeFromHasOne.bind(null, parentOpts.as)
-        return {remove: changeHandler, add: changeHandler}
+  getHandlerFromHasOne = (Model, childOpts) ->
+    ParentModel =
+    findInhasAssos Model, childOpts.Target.hasOneAssos, childOpts, ({as}) ->
+      changeHandler = changeFromHasOne.bind(null, as)
+      return {remove: changeHandler, add: changeHandler}
 
-    for parentOpts in ParentModel.hasManyAssos
-      if compareParentOpts parentOpts, Model, childOpts
-        as = parentOpts.as
-        remove = removeFromHasMany.bind(null, as)
-        add = addIntoHasMany.bind(null, as)
-        return {remove, add}
+  getHandlerFromHasMany = (Model, childOpts) ->
+    findInhasAssos Model, childOpts.Target.hasManyAssos, childOpts, ({as}) ->
+      remove = removeFromHasMany.bind(null, as)
+      add = addIntoHasMany.bind(null, as)
+      return {remove, add}
+
+  getHandlerFromHasAssos = (Model, opts) ->
+    getHandlerFromHasOne(Model, opts) or getHandlerFromHasMany(Model, opts)
 
   @extendBelongsTo: ->
     @belongsToAssos.forEach (opts) =>
