@@ -28,16 +28,17 @@ Migration.createTable 'ChildModel', (t) ->
   t.addColumn 'name', 'TEXT'
   t.addReference 'parentModelId', 'ParentModel'
 
-class ParentModel
-
-  class ChildModel
-    ModelBase.includeInto this
-    constructor: (params) -> @initModel params
-    @belongsTo ParentModel
-
+class ChildModel
   ModelBase.includeInto this
   constructor: (params) -> @initModel params
-  @hasOne ChildModel
+  @initAssos: ->
+    @belongsTo ParentModel
+
+class ParentModel
+  ModelBase.includeInto this
+  constructor: (params) -> @initModel params
+  @initAssos: ->
+    @hasOne ChildModel
 
 mapper = new Mapper path.resolve(__dirname, 'test.db')
 mapper.sync()
@@ -70,8 +71,12 @@ function ChildModel(params) {
 }
 ModelBase.includeInto(ChildModel);
 
-ParentModel.hasOne(ChildModel);
-ChildModel.belongsTo(ParentModel);
+ParentModel.initAssos(function() {
+  ParentModel.hasOne(ChildModel);
+});
+ChildModel.initAssos(function() {
+  ChildModel.belongsTo(ParentModel);
+});
 
 mapper = new Mapper(path.resolve(__dirname, 'test.db'));
 mapper.sync().then(function() {
@@ -137,6 +142,10 @@ mapper.sync().then(function() {
   *opts*: `Object` the index options
 
 ### ModelBase
+
+**initAssos**: `function()` declare the association
+
+all the subclass must implement this interface to declare the association
 
 **@hasOne**: `function(ChildModel, opts)` declare this Model has one child Model
 
