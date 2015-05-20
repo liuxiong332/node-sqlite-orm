@@ -94,6 +94,11 @@ class ModelBaseMixin extends Mixin
         @changeFields = {}
 
   destroy: ->
+    @destroyAssos()
+    Constructor = @constructor
+    keyName = Constructor.primaryKeyName
+    @query.remove(Constructor.tableName, "#{keyName}": this[keyName]).then ->
+      Q.delay(0)
 
   @generateCacheKey: (id) -> @tableName + '@' + id
 

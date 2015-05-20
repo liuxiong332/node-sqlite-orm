@@ -27,5 +27,8 @@ class Query
   selectOne: (tableName, where, opts) ->
     Q.ninvoke @db, 'get', QueryGenerator.selectStmt(tableName, where, opts)
 
+  remove: (tableName, where) ->
+    Q.ninvoke @db, 'run', QueryGenerator.removeStmt(tableName, where)
+
   dropTable: (tableName) ->
     Q.ninvoke @db, 'run', QueryGenerator.dropTableStmt(tableName)

@@ -62,6 +62,7 @@ class ModelAssociation extends Mixin
 
   hasAssosHandler = (as) ->
     removeFromHasMany = (parent, child) ->
+      console.log 'removeFromHasMany: ' + as
       children = parent[as]
       children.scopeUnobserve ->
         index = children.indexOf(child)
@@ -110,6 +111,7 @@ class ModelAssociation extends Mixin
       get: -> this[key] ? null
       set: (val) ->
         origin = this[key]
+        console.log 'belongsTo:' + key + ', handler:' + handler + ',' + origin
         setBelongsTo(opts, val, this)
         if handler
           handler.remove(origin, this) if origin
@@ -143,7 +145,7 @@ class ModelAssociation extends Mixin
             _watchHasManyChange.call(this, change, val, handler)
         val.observe()
       val
-      
+
   @hasOne: (ChildModel, opts={}) ->
     opts.as ?= camelCase(ChildModel.name)
     opts.Target = ChildModel
@@ -191,3 +193,12 @@ class ModelAssociation extends Mixin
         members = model[opts.as]
         members.scopeUnobserve -> members.splice(0, 0, children...)
     Q.all promises
+
+  destroyAssos: ->
+    Model = this.constructor
+    console.log Model.belongsToAssos.length
+    this[opts.as] = null for opts in Model.belongsToAssos
+    this[opts.as] = null for opts in Model.hasOneAssos
+    for opts in Model.hasManyAssos
+      children = this[opts.as]
+      children.splice(0, children.length)
