@@ -12,9 +12,11 @@ class ModelAssociation extends Mixin
 
   @extendAssos: ->
     @counter = 0
-    @extendBelongsToAssos()
-    @extendHasOne()
-    @extendHasManyAssos()
+    belongsToAssos = _.clone(@belongsToAssos)
+    hasManyAssos =  _.clone(@hasManyAssos)
+    @extendBelongsTo(opts) for opts in belongsToAssos
+    @extendHasOne(opts) for opts in @hasOneAssos
+    @extendHasMany(opts) for opts in hasManyAssos
 
   setBelongsTo = (childOpts, parent, child) ->
     child[privateName(childOpts.as)] = parent
@@ -29,6 +31,7 @@ class ModelAssociation extends Mixin
 
   createVirtualBelongsTo = (Model, parentOpts) ->
     ChildModel = parentOpts.Target
+    throw new Error('through is invalid') unless parentOpts.through
     opts =
       through: parentOpts.through
       as: "@#{ChildModel.counter++}", virtual: true, Target: Model
@@ -112,9 +115,6 @@ class ModelAssociation extends Mixin
           handler.remove(origin, this) if origin
           handler.add(val, this) if val
 
-  @extendBelongsToAssos: ->
-    @belongsToAssos.forEach (opts) => @extendBelongsTo(opts)
-
   _watchHasManyChange = (change, val, handler) ->
     if change.type is 'update'
       removes = [change.oldValue]
@@ -143,26 +143,22 @@ class ModelAssociation extends Mixin
             _watchHasManyChange.call(this, change, val, handler)
         val.observe()
       val
-
-  @extendHasManyAssos: ->
-    @hasManyAssos.forEach (opts) => @extendHasMany(opts)
-
+      
   @hasOne: (ChildModel, opts={}) ->
     opts.as ?= camelCase(ChildModel.name)
     opts.Target = ChildModel
     @hasOneAssos.push opts
 
-  @extendHasOne: ->
-    @hasOneAssos.forEach (opts) =>
-      handler = getHandlerInBelongsAssos(this, opts)
-      key = privateName(opts.as)
-      Object.defineProperty @prototype, opts.as,
-        get: -> this[key] ? null
-        set: (val) ->
-          origin = this[key]
-          handler(null, origin) if origin
-          this[key] = val
-          handler(this, val) if val
+  @extendHasOne: (opts) ->
+    handler = getHandlerInBelongsAssos(this, opts)
+    key = privateName(opts.as)
+    Object.defineProperty @prototype, opts.as,
+      get: -> this[key] ? null
+      set: (val) ->
+        origin = this[key]
+        handler(null, origin) if origin
+        this[key] = val
+        handler(this, val) if val
 
   @loadAssos: (model) ->
     Q.all [@loadBelongsTo(model), @loadHasOne(model), @loadHasMany(model)]

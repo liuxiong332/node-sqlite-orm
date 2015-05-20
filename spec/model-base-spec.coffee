@@ -62,7 +62,7 @@ describe 'ModelBaseMixin', ->
     .then -> done()
     .catch done
 
-describe 'ModelBaseMixin 1-1 association', ->
+describe 'ModelBaseMixin basic association', ->
   [ParentModel, ChildModel, SomeModel, mapper] = []
   beforeEach (done) ->
     Migration.createTable 'ParentModel', (t) ->
@@ -237,3 +237,45 @@ describe 'ModelBaseMixin association to self', ->
       model0.children[1].parent.should.equal model0
     .then -> done()
     .catch done
+
+describe 'ModelBaseMixin in asymmetric association', ->
+    [Model, mapper] = []
+
+    beforeEach (done) ->
+      Migration.createTable 'Model', (t) ->
+        t.addColumn 'name', 'TEXT'
+        t.addReference 'parentId', 'Model'
+        t.addReference 'childId', 'Model'
+
+      class Model
+        ModelBaseMixin.includeInto this
+        constructor: (params) -> @initModel params
+        # @belongsTo Model, {through: 'parentId', as: 'parent'}
+        @initAssos: ->
+          @hasMany Model, {as: 'children', through: 'parentId'}
+          @belongsTo Model, {as: 'parent', through: 'childId'}
+
+      mapper = new Mapper path.resolve(__dirname, 'temp/test.db')
+      mapper.sync().then -> done()
+      .catch (err) -> done(err)
+
+    afterEach (done) ->
+      Model.drop().then ->
+        Migration.clear()
+        mapper.close()
+        done()
+      .catch(done)
+
+    it 'work properly', (done) ->
+      models = for i in [0..2]
+        new Model name: "#{i}"
+      Q.all (model.save() for model in models)
+      .then ->
+        models[0].children.push models[1]
+        models[0].parent = models[2]
+        Q.delay(0)
+      .then ->
+        models[1]["@1"].should.equal models[0]
+        models[2]["@0"][0].should.equal models[0]
+        done()
+      .catch done
