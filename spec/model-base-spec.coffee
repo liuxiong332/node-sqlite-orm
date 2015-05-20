@@ -277,5 +277,12 @@ describe 'ModelBaseMixin in asymmetric association', ->
       .then ->
         models[1]["@1"].should.equal models[0]
         models[2]["@0"][0].should.equal models[0]
+        Q.all (model.save() for model in models)
+      .then ->
+        mapper.cache.clear()
+        Model.getById(1)
+      .then (model) ->
+        model.parent.name.should.equal '2'
+        model.children[0].name.should.equal '1'
         done()
       .catch done

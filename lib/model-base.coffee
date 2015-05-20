@@ -107,8 +107,9 @@ class ModelBaseMixin extends Mixin
 
   @loadNoCache: (obj) ->
     model = new this
-    @isInsert = true
     model['_' + key] = val for key, val of obj
+    model.isInsert = true
+
     primaryVal = obj[@primaryKeyName]
     @cache.set @generateCacheKey(primaryVal), model
     @loadAssos(model).then -> model
