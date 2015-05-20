@@ -94,7 +94,7 @@ class ModelBaseMixin extends Mixin
         @changeFields = {}
 
   destroy: ->
-    
+
   @generateCacheKey: (id) -> @tableName + '@' + id
 
   @getById: (id) ->

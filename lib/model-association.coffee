@@ -11,9 +11,10 @@ class ModelAssociation extends Mixin
     @hasManyAssos = []
 
   @extendAssos: ->
-    @extendBelongsTo()
+    @counter = 0
+    @extendBelongsToAssos()
     @extendHasOne()
-    @extendHasMany()
+    @extendHasManyAssos()
 
   setBelongsTo = (childOpts, parent, child) ->
     child[privateName(childOpts.as)] = parent
@@ -26,12 +27,22 @@ class ModelAssociation extends Mixin
         throw new Error("parent is invalid, you may need insert to DB first")
     child[childOpts.through] = primaryVal
 
+  createVirtualBelongsTo = (Model, parentOpts) ->
+    ChildModel = parentOpts.Target
+    opts =
+      through: parentOpts.through
+      as: "@#{ChildModel.counter++}", virtual: true, Target: Model
+    ChildModel.belongsTo(Model, opts)
+    ChildModel.extendBelongsTo(opts, hasAssosHandler(opts.as))
+    return setBelongsTo.bind(null, opts)
+
   getHandlerInBelongsAssos = (Model, parentOpts) ->
-    ParentModel = parentOpts.Target
-    for childOpts in ParentModel.belongsToAssos when childOpts.Target is Model
+    ChildModel = parentOpts.Target
+    for childOpts in ChildModel.belongsToAssos when childOpts.Target is Model
       parentOpts.through ?= childOpts.through
       if childOpts.through is parentOpts.through
         return setBelongsTo.bind(null, childOpts)
+    return createVirtualBelongsTo(Model, parentOpts)
 
   camelCase = (str) -> str[0].toLowerCase() + str[1..]
   pascalCase = (str) -> str[0].toUpperCase() + str[1..]
@@ -46,51 +57,62 @@ class ModelAssociation extends Mixin
     opts.Target = ParentModel
     @belongsToAssos.push opts
 
-  addIntoHasMany = (as, parent, child) ->
-    children = parent[as]
-    children.scopeUnobserve -> children.push(child)
+  hasAssosHandler = (as) ->
+    removeFromHasMany = (parent, child) ->
+      children = parent[as]
+      children.scopeUnobserve ->
+        index = children.indexOf(child)
+        children.splice(index, 1) if index isnt -1
 
-  changeFromHasOne = (as, parent, child) ->
-    parent[privateName(as)] = child
+    addIntoHasMany = (parent, child) ->
+      children = parent[as]
+      children.scopeUnobserve -> children.push(child)
 
-  removeFromHasMany = (as, parent, child) ->
-    children = parent[as]
-    children.scopeUnobserve ->
-      index = children.indexOf(child)
-      children.splice(index, 1) if index isnt -1
+    return {remove, removeFromHasMany, add: addIntoHasMany}
 
-  findInhasAssos = (Model, assosList, childOpts, callback) ->
-    for parentOpts in assosList when parentOpts.Target is Model
-      parentOpts.through ?= childOpts.through
-      return callback(parentOpts) if parentOpts.through is childOpts.through
+  getHandlerForHasAssos = (Model, opts) ->
+    findInhasAssos = (Model, assosList, childOpts, callback) ->
+      for parentOpts in assosList when parentOpts.Target is Model
+        parentOpts.through ?= childOpts.through
+        return callback(parentOpts) if parentOpts.through is childOpts.through
 
-  getHandlerFromHasOne = (Model, childOpts) ->
-    ParentModel =
-    findInhasAssos Model, childOpts.Target.hasOneAssos, childOpts, ({as}) ->
-      changeHandler = changeFromHasOne.bind(null, as)
-      return {remove: changeHandler, add: changeHandler}
+    getHandlerFromHasOne = (Model, childOpts) ->
+      ParentModel =
+      findInhasAssos Model, childOpts.Target.hasOneAssos, childOpts, ({as}) ->
+        changeHandler = ->
+          parent[privateName(as)] = child
+        return {remove: changeHandler, add: changeHandler}
 
-  getHandlerFromHasMany = (Model, childOpts) ->
-    findInhasAssos Model, childOpts.Target.hasManyAssos, childOpts, ({as}) ->
-      remove = removeFromHasMany.bind(null, as)
-      add = addIntoHasMany.bind(null, as)
-      return {remove, add}
+    getHandlerFromHasMany = (Model, childOpts) ->
+      findInhasAssos Model, childOpts.Target.hasManyAssos, childOpts, ({as}) ->
+        hasAssosHandler(as)
 
-  getHandlerFromHasAssos = (Model, opts) ->
+    createVirtualHasMany = (Model, childOpts) ->
+      ParentModel = childOpts.Target
+      opts =
+        as: "@#{ParentModel.counter++}"
+        through: childOpts.through, virtual: true, Target: Model
+      ParentModel.hasMany(Model, opts)
+      ParentModel.extendHasMany opts, setBelongsTo.bind(null, opts)
+      hasAssosHandler(opts.as)
+
     getHandlerFromHasOne(Model, opts) or getHandlerFromHasMany(Model, opts)
+    or createVirtualHasMany(Model, opts)
 
-  @extendBelongsTo: ->
-    @belongsToAssos.forEach (opts) =>
-      key = privateName(opts.as)
-      handler = getHandlerFromHasAssos(this, opts)
-      Object.defineProperty @prototype, opts.as,
-        get: -> this[key] ? null
-        set: (val) ->
-          origin = this[key]
-          setBelongsTo(opts, val, this)
-          if handler
-            handler.remove(origin, this) if origin
-            handler.add(val, this) if val
+  @extendBelongsTo: (opts, handler) ->
+    key = privateName(opts.as)
+    handler ?= getHandlerForHasAssos(this, opts)
+    Object.defineProperty @prototype, opts.as,
+      get: -> this[key] ? null
+      set: (val) ->
+        origin = this[key]
+        setBelongsTo(opts, val, this)
+        if handler
+          handler.remove(origin, this) if origin
+          handler.add(val, this) if val
+
+  @extendBelongsToAssos: ->
+    @belongsToAssos.forEach (opts) => @extendBelongsTo(opts)
 
   _watchHasManyChange = (change, val, handler) ->
     if change.type is 'update'
@@ -110,17 +132,19 @@ class ModelAssociation extends Mixin
     opts.Target = ChildModel
     @hasManyAssos.push opts
 
-  @extendHasMany: ->
-    @hasManyAssos.forEach (opts) =>
-      handler = getHandlerInBelongsAssos(this, opts)
-      key = privateName(opts.as)
-      Object.defineProperty @prototype, opts.as, get: ->
-        unless (val = this[key])?
-          val = this[key] = new ObserverArray (changes) =>
-            for change in changes
-              _watchHasManyChange.call(this, change, val, handler)
-          val.observe()
-        val
+  @extendHasMany: (opts, handler) ->
+    handler ?= getHandlerInBelongsAssos(this, opts)
+    key = privateName(opts.as)
+    Object.defineProperty @prototype, opts.as, get: ->
+      unless (val = this[key])?
+        val = this[key] = new ObserverArray (changes) =>
+          for change in changes
+            _watchHasManyChange.call(this, change, val, handler)
+        val.observe()
+      val
+
+  @extendHasManyAssos: ->
+    @hasManyAssos.forEach (opts) => @extendHasMany(opts)
 
   @hasOne: (ChildModel, opts={}) ->
     opts.as ?= camelCase(ChildModel.name)
@@ -145,7 +169,7 @@ class ModelAssociation extends Mixin
   @loadBelongsTo: (model) ->
     promises = []
     @belongsToAssos.forEach (opts) ->
-      if (id = model[opts.through])?
+      if not opts.virtual and (id = model[opts.through])?
         promises.push opts.Target.getById(id).then (parent) ->
           model[privateName(opts.as)] = parent
     Q.all promises
@@ -154,6 +178,7 @@ class ModelAssociation extends Mixin
     keyName = @primaryKeyName
     promises = []
     @hasOneAssos.forEach (opts) ->
+      return if opts.virtual
       where = "#{opts.through}": model[keyName]
       promises.push opts.Target.find(where).then (child) ->
         model[privateName(opts.as)] = child
@@ -163,6 +188,7 @@ class ModelAssociation extends Mixin
     keyName = @primaryKeyName
     promises = []
     @hasManyAssos.forEach (opts) ->
+      return if opts.virtual
       where = "#{opts.through}": model[keyName]
       promises.push opts.Target.findAll(where).then (children) ->
         members = model[opts.as]
