@@ -93,6 +93,8 @@ class ModelBaseMixin extends Mixin
       @query.update(tableName, @changeFields, where).then =>
         @changeFields = {}
 
+  destroy: ->
+    
   @generateCacheKey: (id) -> @tableName + '@' + id
 
   @getById: (id) ->

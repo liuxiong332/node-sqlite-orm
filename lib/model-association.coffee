@@ -19,7 +19,11 @@ class ModelAssociation extends Mixin
     child[privateName(childOpts.as)] = parent
     # set the foreign key
     targetName = childOpts.Target.primaryKeyName
-    primaryVal = if parent then parent[targetName] else null
+    primaryVal = null
+    if parent
+      primaryVal = parent[targetName]
+      unless primaryVal
+        throw new Error("parent is invalid, you may need insert to DB first")
     child[childOpts.through] = primaryVal
 
   getHandlerInBelongsAssos = (Model, parentOpts) ->
