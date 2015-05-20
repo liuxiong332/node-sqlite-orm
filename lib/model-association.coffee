@@ -68,7 +68,7 @@ class ModelAssociation extends Mixin
       children = parent[as]
       children.scopeUnobserve -> children.push(child)
 
-    return {remove, removeFromHasMany, add: addIntoHasMany}
+    return {remove: removeFromHasMany, add: addIntoHasMany}
 
   getHandlerForHasAssos = (Model, opts) ->
     findInhasAssos = (Model, assosList, childOpts, callback) ->
@@ -79,7 +79,7 @@ class ModelAssociation extends Mixin
     getHandlerFromHasOne = (Model, childOpts) ->
       ParentModel =
       findInhasAssos Model, childOpts.Target.hasOneAssos, childOpts, ({as}) ->
-        changeHandler = ->
+        changeHandler = (parent, child) ->
           parent[privateName(as)] = child
         return {remove: changeHandler, add: changeHandler}
 
@@ -96,8 +96,9 @@ class ModelAssociation extends Mixin
       ParentModel.extendHasMany opts, setBelongsTo.bind(null, opts)
       hasAssosHandler(opts.as)
 
-    getHandlerFromHasOne(Model, opts) or getHandlerFromHasMany(Model, opts)
-    or createVirtualHasMany(Model, opts)
+    getHandlerFromHasOne(Model, opts) or
+    getHandlerFromHasMany(Model, opts) or
+    createVirtualHasMany(Model, opts)
 
   @extendBelongsTo: (opts, handler) ->
     key = privateName(opts.as)
