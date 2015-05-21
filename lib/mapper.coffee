@@ -37,8 +37,9 @@ class Mapper
         ModelBase.models[tableName]?.extendModel this, tableInfo
         # create the database table
         @query.createTable(tableName, tableInfo.attributes).then =>
-          for indexName, column of tableInfo.indexes
+          promises = for indexName, column of tableInfo.indexes
             @query.createIndex(tableName, indexName, column)
+          Q.all promises
 
       Q.all(createPromises).then ->
         Model.initAssos?() for name, Model of ModelBase.models
