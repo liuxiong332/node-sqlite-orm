@@ -1,15 +1,50 @@
 module.exports =
-class ObserverArray extends Array
+class ObserverArray
   constructor: (@observeFunc) ->
-    super()
+    @list = []
+    @inObserve = false
 
-  observe: ->
-    Array.observe this, @observeFunc
+  observe: -> @inObserve = true
 
-  unobserve: ->
-    Array.unobserve this, @observeFunc
+  unobserve: -> @inObserve = false
 
   scopeUnobserve: (callback) ->
-    this.unobserve()
+    origin = @inObserve
+    @inObserve = false
     callback()
-    this.observe()
+    @inObserve = origin
+
+  set: (index, value) ->
+    list = @list
+    oldValue = list[index]
+    list[index] = value
+    if @inObserve
+      @observeFunc [{name: index, type: 'update', oldValue}]
+
+  get: (index) -> @list[index]
+
+  splice: (start, removeCount, insertItems...) ->
+    removed = @list.splice(start, removeCount, insertItems...)
+
+    if @inObserve
+      change =
+        type: 'splice', index: start, removed: removed
+        addedCount: insertItems.length
+      @observeFunc [change]
+    removed
+
+  push: (elements...) ->
+    @splice(@list.length, 0, elements...)
+
+  pop: ->
+    if @list.length > 0
+      @splice(@list.length - 1, 1)[0]
+
+  slice: (start, end) ->
+    @list.slice(start, end)
+
+  indexOf: (index) ->
+    @list.indexOf index
+
+  Object.defineProperty @prototype, 'length',
+    get: -> @list.length

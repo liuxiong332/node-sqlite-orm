@@ -30,6 +30,7 @@ class ModelAssociation extends Mixin
     child[childOpts.through] = primaryVal
 
   createVirtualBelongsTo = (Model, parentOpts) ->
+    parentOpts.remoteVirtual = true
     ChildModel = parentOpts.Target
     throw new Error('through is invalid') unless parentOpts.through
     opts =
@@ -92,6 +93,7 @@ class ModelAssociation extends Mixin
         hasAssosHandler(as)
 
     createVirtualHasMany = (Model, childOpts) ->
+      childOpts.remoteVirtual = true
       ParentModel = childOpts.Target
       opts =
         as: "@#{ParentModel.counter++}"
@@ -111,7 +113,7 @@ class ModelAssociation extends Mixin
       get: -> this[key] ? null
       set: (val) ->
         origin = this[key]
-        console.log 'belongsTo:' + key + ', handler:' + handler + ',' + origin
+        console.log 'belongsTo:' + key + ', origin:' + origin
         setBelongsTo(opts, val, this)
         if handler
           handler.remove(origin, this) if origin
@@ -120,7 +122,7 @@ class ModelAssociation extends Mixin
   _watchHasManyChange = (change, val, handler) ->
     if change.type is 'update'
       removes = [change.oldValue]
-      creates = [val[change.name]]
+      creates = [val.get(change.name)]
     else if change.type is 'splice'
       removes = change.removed
       index = change.index
@@ -169,8 +171,12 @@ class ModelAssociation extends Mixin
     promises = []
     @belongsToAssos.forEach (opts) ->
       if not opts.virtual and (id = model[opts.through])?
+        console.log 'loadBelongsTo: ' + opts.as +
+          ', isRemoteVirtual:' + opts.remoteVirtual
         promises.push opts.Target.getById(id).then (parent) ->
-          model[privateName(opts.as)] = parent
+          if parent
+            as = if opts.remoteVirtual then opts.as else privateName(opts.as)
+            model[as] = parent
     Q.all promises
 
   @loadHasOne: (model) ->
@@ -180,7 +186,7 @@ class ModelAssociation extends Mixin
       return if opts.virtual
       where = "#{opts.through}": model[keyName]
       promises.push opts.Target.find(where).then (child) ->
-        model[privateName(opts.as)] = child
+        model[privateName(opts.as)] = child if child
     Q.all promises
 
   @loadHasMany: (model) ->
@@ -190,8 +196,13 @@ class ModelAssociation extends Mixin
       return if opts.virtual
       where = "#{opts.through}": model[keyName]
       promises.push opts.Target.findAll(where).then (children) ->
+        return if children.length is 0
         members = model[opts.as]
-        members.scopeUnobserve -> members.splice(0, 0, children...)
+        if opts.remoteVirtual
+          console.log 'loadHasMany: remoteVirtual: as:' + opts.as
+          members.splice(0, 0, children...)
+        else
+          members.scopeUnobserve -> members.splice(0, 0, children...)
     Q.all promises
 
   destroyAssos: ->

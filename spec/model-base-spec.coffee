@@ -146,7 +146,7 @@ describe 'ModelBaseMixin basic association', ->
       child.parentModel = parent
       child.parentModel.should.equal parent
       child.parentModelId.should.equal parent.id
-      parent.someModels[0].should.equal child
+      parent.someModels.get(0).should.equal child
 
       child.parentModel = null
       parent.someModels.length.should.equal 0
@@ -222,7 +222,6 @@ describe 'ModelBaseMixin association to self', ->
     Q.all (model.save() for model in models)
     .then ->
       models[0].children.splice(0, 0, models[1], models[2])
-      Q.delay(0)
     .then ->
       models[0].children.length.should.equal 2
       models[1].parent.should.equal models[0]
@@ -233,8 +232,8 @@ describe 'ModelBaseMixin association to self', ->
       Model.getById(1)
     .then (model0) ->
       model0.children.length.should.equal 2
-      model0.children[0].parent.should.equal model0
-      model0.children[1].parent.should.equal model0
+      model0.children.get(0).parent.should.equal model0
+      model0.children.get(1).parent.should.equal model0
     .then -> done()
     .catch done
 
@@ -276,17 +275,22 @@ describe 'ModelBaseMixin in asymmetric association', ->
         Q.delay(0)
       .then ->
         models[1]["@1"].should.equal models[0]
-        models[2]["@0"][0].should.equal models[0]
+        models[2]["@0"].get(0).should.equal models[0]
         Q.all (model.save() for model in models)
       .then ->
         mapper.cache.clear()
         Model.getById(1)
       .then (model) ->
-        model.parent.name.should.equal '2'
-        model1 = model.children[0]
-        model1.name.should.equal '1'
-        model1.destroy().then -> model
+        Q.delay()
+        model
       .then (model) ->
-        model.children.length.should.equal 0
+        model.parent.name.should.equal '2'
+        model.parent['@0'].get(0).should.equal model
+        model1 = model.children.get(0)
+        model1.name.should.equal '1'
+        model1['@1'].should.equal model
+        # model1.destroy().then -> model
+      .then (model) ->
+        # model.children.length.should.equal 0
         done()
       .catch done
