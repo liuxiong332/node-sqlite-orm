@@ -289,8 +289,10 @@ describe 'ModelBaseMixin in asymmetric association', ->
         model1 = model.children.get(0)
         model1.name.should.equal '1'
         model1['@1'].should.equal model
-        # model1.destroy().then -> model
+        model1.destroy().then -> model
       .then (model) ->
-        # model.children.length.should.equal 0
+        model.children.length.should.equal 0
+        model.parent.destroy().then -> model
+      .then (model) ->
         done()
       .catch done

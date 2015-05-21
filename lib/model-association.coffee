@@ -37,7 +37,7 @@ class ModelAssociation extends Mixin
       through: parentOpts.through
       as: "@#{ChildModel.counter++}", virtual: true, Target: Model
     ChildModel.belongsTo(Model, opts)
-    ChildModel.extendBelongsTo(opts, hasAssosHandler(opts.as))
+    ChildModel.extendBelongsTo(opts, hasAssosHandler(parentOpts.as))
     return setBelongsTo.bind(null, opts)
 
   getHandlerInBelongsAssos = (Model, parentOpts) ->
@@ -63,7 +63,6 @@ class ModelAssociation extends Mixin
 
   hasAssosHandler = (as) ->
     removeFromHasMany = (parent, child) ->
-      console.log 'removeFromHasMany: ' + as
       children = parent[as]
       children.scopeUnobserve ->
         index = children.indexOf(child)
@@ -99,7 +98,7 @@ class ModelAssociation extends Mixin
         as: "@#{ParentModel.counter++}"
         through: childOpts.through, virtual: true, Target: Model
       ParentModel.hasMany(Model, opts)
-      ParentModel.extendHasMany opts, setBelongsTo.bind(null, opts)
+      ParentModel.extendHasMany opts, setBelongsTo.bind(null, childOpts)
       hasAssosHandler(opts.as)
 
     getHandlerFromHasOne(Model, opts) or
@@ -113,7 +112,6 @@ class ModelAssociation extends Mixin
       get: -> this[key] ? null
       set: (val) ->
         origin = this[key]
-        console.log 'belongsTo:' + key + ', origin:' + origin
         setBelongsTo(opts, val, this)
         if handler
           handler.remove(origin, this) if origin
@@ -171,8 +169,6 @@ class ModelAssociation extends Mixin
     promises = []
     @belongsToAssos.forEach (opts) ->
       if not opts.virtual and (id = model[opts.through])?
-        console.log 'loadBelongsTo: ' + opts.as +
-          ', isRemoteVirtual:' + opts.remoteVirtual
         promises.push opts.Target.getById(id).then (parent) ->
           if parent
             as = if opts.remoteVirtual then opts.as else privateName(opts.as)
@@ -199,7 +195,6 @@ class ModelAssociation extends Mixin
         return if children.length is 0
         members = model[opts.as]
         if opts.remoteVirtual
-          console.log 'loadHasMany: remoteVirtual: as:' + opts.as
           members.splice(0, 0, children...)
         else
           members.scopeUnobserve -> members.splice(0, 0, children...)
@@ -207,7 +202,7 @@ class ModelAssociation extends Mixin
 
   destroyAssos: ->
     Model = this.constructor
-    console.log Model.belongsToAssos.length
+
     this[opts.as] = null for opts in Model.belongsToAssos
     this[opts.as] = null for opts in Model.hasOneAssos
     for opts in Model.hasManyAssos
