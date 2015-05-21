@@ -74,6 +74,9 @@ class QueryGenerator
       template += " LIMIT #{opts.limit}"
     template
 
+  @createIndexStmt: (tableName, indexName, column) ->
+    "CREATE INDEX IF NOT EXISTS #{indexName} ON #{tableName} (#{column})"
+
   @dropTableStmt: (tableName) ->
     "DROP TABLE IF EXISTS #{tableName}"
 

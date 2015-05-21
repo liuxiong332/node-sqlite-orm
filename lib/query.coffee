@@ -30,5 +30,9 @@ class Query
   remove: (tableName, where) ->
     Q.ninvoke @db, 'run', QueryGenerator.removeStmt(tableName, where)
 
+  createIndex: (tableName, indexName, column) ->
+    sql = QueryGenerator.createIndexStmt(tableName, indexName, column)
+    Q.ninvoke @db, 'run', sql
+
   dropTable: (tableName) ->
     Q.ninvoke @db, 'run', QueryGenerator.dropTableStmt(tableName)

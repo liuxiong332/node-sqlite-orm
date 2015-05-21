@@ -4,6 +4,7 @@ class TableInfo
   constructor: (@tableName, opts) ->
     @attributes = {}
     @references = {}
+    @indexes = {}
 
   addColumn: (name, type, opts) ->
     @attributes[name] = if opts then _.extend({type}, opts) else {type}
@@ -17,6 +18,9 @@ class TableInfo
       opts = @attributes[name] = {type: 'INTEGER'}
     opts.references = _.extend {name: tableName}, opts
     @references[name] = opts
+
+  createIndex: (indexName, column) ->
+    @indexes[indexName] = column
 
   _checkPrimaryKey: ->
     @addColumn('id', 'INTEGER', primaryKey: true) unless @primaryKeyName
