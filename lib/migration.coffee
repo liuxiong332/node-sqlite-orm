@@ -10,9 +10,6 @@ class TableInfo
     @attributes[name] = if opts then _.extend({type}, opts) else {type}
     @primaryKeyName = name if opts?.primaryKey
 
-  addIndex: (names...) ->
-    @attributes[name].index = true for name in names
-
   addReference: (name, tableName, opts={}) ->
     unless (opts = @attributes[name])?
       opts = @attributes[name] = {type: 'INTEGER'}
