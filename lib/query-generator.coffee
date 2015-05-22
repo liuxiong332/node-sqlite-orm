@@ -45,8 +45,11 @@ class QueryGenerator
   @updateStmt: (tableName, fields, whereOpts) ->
     values = for key, value of fields
       "#{key} = #{@wrapValue(value)}"
-    whereOpts = whereOpts.where if whereOpts.where?
-    "UPDATE #{tableName} SET #{values.join(', ')} WHERE #{@expr(whereOpts)}"
+    sql = "UPDATE #{tableName} SET #{values.join(', ')}"
+    if whereOpts
+      whereOpts = whereOpts.where if whereOpts.where?
+      sql = sql + " WHERE #{@expr(whereOpts)}"
+    sql
 
   @removeStmt: (tableName, whereOpts) ->
     whereOpts = whereOpts.where if whereOpts.where?
