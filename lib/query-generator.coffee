@@ -136,4 +136,6 @@ class QueryGenerator
     resStrs.join(' AND ')
 
   @wrapValue: (val) ->
-    if _.isString(val) then "\"#{val}\"" else val
+    unless val? then 'NULL'
+    else if _.isString(val) then "\"#{val}\""
+    else val
