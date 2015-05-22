@@ -48,12 +48,15 @@ class QueryGenerator
     sql = "UPDATE #{tableName} SET #{values.join(', ')}"
     if whereOpts
       whereOpts = whereOpts.where if whereOpts.where?
-      sql = sql + " WHERE #{@expr(whereOpts)}"
+      sql += " WHERE #{@expr(whereOpts)}"
     sql
 
   @removeStmt: (tableName, whereOpts) ->
-    whereOpts = whereOpts.where if whereOpts.where?
-    "DELETE FROM #{tableName} WHERE #{@expr(whereOpts)}"
+    if whereOpts
+      whereOpts = whereOpts.where if whereOpts.where?
+      "DELETE FROM #{tableName} WHERE #{@expr(whereOpts)}"
+    else
+      "DELETE FROM #{tableName}"
 
   @orderingTerm: (orderBy) ->
     if _.isString(orderBy) then orderByFields = orderBy
