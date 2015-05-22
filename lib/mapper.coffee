@@ -51,6 +51,17 @@ class Mapper
   close: ->
     Q.ninvoke @db, 'close'
 
+  beginTransaction: ->
+    Q.ninvoke @db, 'run', 'BEGIN TRANSACTION'
+
+  endTransaction: ->
+    Q.ninvoke @db, 'run', 'END TRANSACTION'
+
+  scopeTransaction: (callback) ->
+    @beginTransaction()
+    .then -> callback()
+    .then => @endTransaction()
+
   getQuery: -> @query
   @Migration = Migration
   @ModelBase = ModelBase
