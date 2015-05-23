@@ -60,11 +60,11 @@ class ModelAssociation extends Mixin
   privateName = (name) -> '_' + name
 
   defaultThrough = (ParentModel) ->
-    camelCase(ParentModel.name) + pascalCase(ParentModel.primaryKeyName)
+    camelCase(ParentModel._name) + pascalCase(ParentModel.primaryKeyName)
 
   @belongsTo: (ParentModel, opts={}) ->
     opts.through ?= defaultThrough(ParentModel)
-    opts.as ?= camelCase(ParentModel.name)
+    opts.as ?= camelCase(ParentModel._name)
     opts.Target = ParentModel
     @belongsToAssos.push opts
 
@@ -100,12 +100,12 @@ class ModelAssociation extends Mixin
       .then (midModel) ->
         opts.midModel = targetOpts.midModel = midModel
 
-    remove: (target, source) =>
+    remove: (target, source) ->
       removeFromHasMany(targetOpts.as, target, source)
       if opts.midModel
         opts.midModel.destroy()
       else
-        @remove getWhere(target, source)
+        MidModel.remove getWhere(target, source)
 
   getHandlerForHasAssos = (Model, opts) ->
     ParentModel = opts.Target
@@ -185,7 +185,7 @@ class ModelAssociation extends Mixin
 
   @hasMany: (ChildModel, opts={}) ->
     opts.through ?= defaultThrough(this)
-    opts.as ?= camelCase(ChildModel.name) + 's'
+    opts.as ?= camelCase(ChildModel._name) + 's'
     opts.Target = ChildModel
     @hasManyAssos.push opts
 
@@ -204,10 +204,10 @@ class ModelAssociation extends Mixin
       arrayGetter.call(this, key, handler)
 
   @hasManyBelongsTo: (TargetModel, opts={}) ->
-    opts.midTableName ?= this.name + TargetModel.name
+    opts.midTableName ?= this._name + TargetModel._name
     opts.sourceThrough ?= defaultThrough(this)
     opts.targetThrough ?= defaultThrough(TargetModel)
-    opts.as ?= camelCase(TargetModel.name) + 's'
+    opts.as ?= camelCase(TargetModel._name) + 's'
     opts.Target = TargetModel
     @hasManyBelongsToAssos.push opts
 
@@ -219,7 +219,7 @@ class ModelAssociation extends Mixin
 
   @hasOne: (ChildModel, opts={}) ->
     opts.through ?= defaultThrough(this)
-    opts.as ?= camelCase(ChildModel.name)
+    opts.as ?= camelCase(ChildModel._name)
     opts.Target = ChildModel
     @hasOneAssos.push opts
 

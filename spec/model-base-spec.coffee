@@ -285,7 +285,7 @@ describe 'ModelBaseMixin in asymmetric association', ->
       .catch done
 
 describe 'ModelBaseMixin in hasManyBelongsTo association', ->
-  [Model, runner] = []
+  [Source, Target, runner] = []
   beforeEach (done) ->
     Migration.createTable 'Source', (t) ->
       t.addColumn 'name', 'TEXT'
@@ -297,18 +297,29 @@ describe 'ModelBaseMixin in hasManyBelongsTo association', ->
       t.addReference 'sourceId', 'Source'
       t.addReference 'targetId', 'Target'
 
+    class Target
+      ModelBaseMixin.includeInto this
+      constructor: (params) -> @initModel params
+
     class Source
       ModelBaseMixin.includeInto this
       constructor: (params) -> @initModel params
       @initAssos: -> @hasManyBelongsTo Target
-
-    class Target
-      ModelBaseMixin.includeInto this
-      constructor: (params) -> @initModel params
 
     runner = new MapperRunner
     runner.start(done)
 
   afterEach (done) -> runner.stop(done)
 
-  it.only 'hasManyBelongsTo',  ->
+  it 'hasManyBelongsTo', (done) ->
+    src = new Source name: 'Source'
+    target = new Target name: 'Target'
+    Q.all [src.save(), target.save()]
+    .then ->
+      src.targets.push(target)
+      target['@0'].get(0).should.equal src
+    .then ->
+      src.targets.pop()
+      target['@0'].length.should.equal 0
+      done()
+    .catch done
