@@ -30,6 +30,10 @@ class ModelAssociation extends Mixin
         throw new Error("parent is invalid, you may need insert to DB first")
     child[childOpts.through] = primaryVal
 
+  belongsToHandler = (opts) ->
+    add: (child, parent) -> setBelongsTo(opts, child, parent)
+    remove: (child, parent) -> setBelongsTo(opts, child, null)
+
   createVirtualBelongsTo = (Model, parentOpts) ->
     parentOpts.remoteVirtual = true
     ChildModel = parentOpts.Target
@@ -39,13 +43,13 @@ class ModelAssociation extends Mixin
       as: "@#{ChildModel.counter++}", virtual: true, Target: Model
     ChildModel.belongsTo(Model, opts)
     ChildModel.extendBelongsTo(opts, hasAssosHandler(parentOpts.as))
-    return setBelongsTo.bind(null, opts)
+    belongsToHandler(opts)
 
   getHandlerInBelongsAssos = (Model, parentOpts) ->
     ChildModel = parentOpts.Target
     for childOpts in ChildModel.belongsToAssos when childOpts.Target is Model
       if childOpts.through is parentOpts.through
-        return setBelongsTo.bind(null, childOpts)
+        return belongsToHandler(childOpts)
     return createVirtualBelongsTo(Model, parentOpts)
 
   camelCase = (str) -> str[0].toLowerCase() + str[1..]
@@ -75,10 +79,29 @@ class ModelAssociation extends Mixin
     remove: removeFromHasMany.bind(null, as)
     add: addIntoHasMany.bind(null, as)
 
-  # hasManyBelongsToAssosHandler = (midTableName, as) ->
-  #   MidModel = ModelBase.models[midTableName]
-  #   add: ()->
-  #     MidModel.create()
+  hasManyBelongsToAssosHandler = (opts, targetOpts) ->
+    MidModel = ModelBase.models[midTableName]
+    st = opts.sourceThrough
+    tt = opts.targetThrough
+
+    getWhere = (target, source) ->
+      sourceKeyName = source.constructor.primaryKeyName
+      targetKeyName = target.constructor.primaryKeyName
+      "#{st}": source[sourceKeyName]
+      "#{tt}": target[targetKeyName]
+
+    add: (target, source) ->
+      addIntoHasMany(targetOpts.as, target, source)
+      MidModel.create getWhere(target, source)
+      .then (midModel) ->
+        opts.midModel = targetOpts.midModel = midModel
+
+    remove: (target, source) =>
+      removeFromHasMany(targetOpts.as, target, source)
+      if opts.midModel
+        opts.midModel.destroy()
+      else
+        @remove getWhere(target, source)
 
   getHandlerForHasAssos = (Model, opts) ->
     ParentModel = opts.Target
@@ -100,7 +123,7 @@ class ModelAssociation extends Mixin
         as: "@#{ParentModel.counter++}"
         through: childOpts.through, virtual: true, Target: Model
       ParentModel.hasMany(Model, opts)
-      ParentModel.extendHasMany opts, setBelongsTo.bind(null, childOpts)
+      ParentModel.extendHasMany opts, belongsToHandler(childOpts)
       hasAssosHandler(opts.as)
 
     getHandlerFromHasOne(Model) or
@@ -113,9 +136,23 @@ class ModelAssociation extends Mixin
       targetOpts.Target is Model and
       targetOpts.midTableName is opts.midTableName
 
+    createVirtualHasManyBelongsTo = (Model, opts) ->
+      opts.remoteVirtual = true
+      targetOpts =
+        as: "@#{Target.counter++}"
+        sourceThrough: opts.targetThrough
+        targetThrough: opts.sourceThrough
+        midTableName: opts.midTableName
+        virtual: true, Target: Model
+      Target.hasManyBelongsTo(Model, targetOpts)
+      targetHandler = hasManyBelongsToAssosHandler(targetOpts, opts)
+      Target.extendHasManyBelongsTo targetOpts, targetHandler
+      hasManyBelongsToAssosHandler(opts, targetOpts)
+
     for targetOpts in Target.hasManyBelongsToAssos
       if compareTargetOpts(targetOpts)
-        return hasAssosHandler(targetOpts.as)
+        return hasManyBelongsToAssosHandler(opts, targetOpts)
+    createVirtualHasManyBelongsTo(Model, opts)
 
   @extendBelongsTo: (opts, handler) ->
     key = privateName(opts.as)
@@ -138,9 +175,9 @@ class ModelAssociation extends Mixin
       index = change.index
       creates = val.slice(index, index + change.addedCount)
     for removed in removes when removed
-      handler(removed, null)
+      handler.remove(removed, this)
     for created in creates when created
-      handler(created, this)
+      handler.add(created, this)
 
   @hasMany: (ChildModel, opts={}) ->
     opts.through ?= defaultThrough(this)
@@ -168,7 +205,7 @@ class ModelAssociation extends Mixin
     @hasManyBelongsToAssos.push opts
 
   @extendHasManyBelongsTo: (opts, handler) ->
-    handler ?= getHandlerInBelongsAssos(this, opts)
+    handler ?= getHandlerForHasBelongsAssos(this, opts)
     key = privateName(opts.as)
     Object.defineProperty @prototype, opts.as, get: ->
       unless (val = this[key])?
@@ -191,9 +228,9 @@ class ModelAssociation extends Mixin
       get: -> this[key] ? null
       set: (val) ->
         origin = this[key]
-        handler(origin, null) if origin
+        handler.remove(origin, null) if origin
         this[key] = val
-        handler(val, this) if val
+        handler.add(val, this) if val
 
   @loadAssos: (model) ->
     Q.all [@loadBelongsTo(model), @loadHasOne(model), @loadHasMany(model)]

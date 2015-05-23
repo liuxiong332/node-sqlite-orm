@@ -102,6 +102,9 @@ class ModelBaseMixin extends Mixin
     keyName = Constructor.primaryKeyName
     @query.remove(Constructor.tableName, "#{keyName}": this[keyName])
 
+  @remove: (where) ->
+    @query.remove(@tableName, where)
+
   @clear: ->
     @query.remove(@tableName)
 

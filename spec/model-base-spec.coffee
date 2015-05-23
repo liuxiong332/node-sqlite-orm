@@ -276,7 +276,6 @@ describe 'ModelBaseMixin in asymmetric association', ->
       .then ->
         models[0].children.push models[1]
         models[0].parent = models[2]
-        Q.delay(0)
       .then ->
         models[1]["@1"].should.equal models[0]
         models[2]["@0"].get(0).should.equal models[0]
