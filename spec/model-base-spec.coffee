@@ -208,7 +208,7 @@ describe 'ModelBaseMixin association to self', ->
       ModelBaseMixin.includeInto this
       constructor: (params) -> @initModel params
       @belongsTo Model, {through: 'parentId', as: 'parent'}
-      @hasMany Model, {as: 'children'}
+      @hasMany Model, {through: 'parentId', as: 'children'}
 
     mapper = new Mapper path.resolve(__dirname, 'temp/test.db')
     mapper.sync().then -> done()

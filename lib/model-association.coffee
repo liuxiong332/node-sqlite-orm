@@ -9,6 +9,7 @@ class ModelAssociation extends Mixin
     @belongsToAssos = []
     @hasOneAssos = []
     @hasManyAssos = []
+    @hasBelongsToManyAssos = []
 
   @extendAssos: ->
     @counter = 0
@@ -43,7 +44,6 @@ class ModelAssociation extends Mixin
   getHandlerInBelongsAssos = (Model, parentOpts) ->
     ChildModel = parentOpts.Target
     for childOpts in ChildModel.belongsToAssos when childOpts.Target is Model
-      parentOpts.through ?= childOpts.through
       if childOpts.through is parentOpts.through
         return setBelongsTo.bind(null, childOpts)
     return createVirtualBelongsTo(Model, parentOpts)
@@ -77,7 +77,6 @@ class ModelAssociation extends Mixin
   getHandlerForHasAssos = (Model, opts) ->
     findInhasAssos = (Model, assosList, childOpts, callback) ->
       for parentOpts in assosList when parentOpts.Target is Model
-        parentOpts.through ?= childOpts.through
         return callback(parentOpts) if parentOpts.through is childOpts.through
 
     getHandlerFromHasOne = (Model, childOpts) ->
@@ -131,6 +130,7 @@ class ModelAssociation extends Mixin
       handler(this, created)
 
   @hasMany: (ChildModel, opts={}) ->
+    opts.through ?= defaultThrough(this)
     opts.as ?= camelCase(ChildModel.name) + 's'
     opts.Target = ChildModel
     @hasManyAssos.push opts
@@ -147,6 +147,7 @@ class ModelAssociation extends Mixin
       val
 
   @hasOne: (ChildModel, opts={}) ->
+    opts.through ?= defaultThrough(this)
     opts.as ?= camelCase(ChildModel.name)
     opts.Target = ChildModel
     @hasOneAssos.push opts
