@@ -34,11 +34,14 @@ class ModelBaseMixin extends Mixin
       @defineAttr name, opts
 
   @extendModel: (mapper, tableInfo) ->
+    @mapper = mapper
     @query = mapper.getQuery()
     @cache = mapper.cache
     @tableName = tableInfo.tableName
     @primaryKeyName = tableInfo.primaryKeyName
     @extendAttrs tableInfo
+
+  @getMapper: -> @mapper
 
   @wrapWhere: (where) ->
     if where and not _.isObject where

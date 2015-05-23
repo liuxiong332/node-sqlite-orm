@@ -104,21 +104,21 @@ More sample can refer to below sites:
 
 * **scopeTransaction**: `function(callback)` make the callback invoke in the transaction, after this callback complete, `endTransaction` will invoke automatically.
 
-* **Migration** `Migration` get the Migration class
+* **@Migration** `Migration` get the Migration class
 
-* **ModelBase** `ModelBase` get the ModelBase class
+* **@ModelBase** `ModelBase` get the ModelBase class
 
-* **INTEGER** `String` the INTEGER data type
+* **@INTEGER** `String` the INTEGER data type
 
-* **REAL** `String` the REAL data type
+* **@REAL** `String` the REAL data type
 
-* **TEXT** `String` the TEXT data type
+* **@TEXT** `String` the TEXT data type
 
-* **BLOB** `String` the BLOB data type
+* **@BLOB** `String` the BLOB data type
 
 ### Migration
 
-* **createTable**: `function(tableName, callback)` create the database table
+* **@createTable**: `function(tableName, callback)` create the database table
 
   * *tableName*: `String`
 
@@ -126,7 +126,7 @@ More sample can refer to below sites:
 
     * *tableInfo*: `TableInfo` the class to create the columns and index
 
-* **clear**: `function()` clear the table definition
+* **@clear**: `function()` clear the table definition
 
 ### TableInfo
 
@@ -153,7 +153,7 @@ More sample can refer to below sites:
 
 ### ModelBase
 
-* **initAssos**: `function()` declare the association
+* **@initAssos**: `function()` declare the association
 
   all the subclass must implement this interface to declare the association
 
@@ -213,8 +213,6 @@ In lieu of a formal styleguide, take care to maintain the existing coding style.
 ## License
 
 Copyright (c) 2015 liuxiong. Licensed under the MIT license.
-
-
 
 [npm-url]: https://npmjs.org/package/sqlite-orm
 [npm-image]: https://badge.fury.io/js/sqlite-orm.svg
