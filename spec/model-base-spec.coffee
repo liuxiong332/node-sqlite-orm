@@ -10,8 +10,7 @@ describe 'ModelBaseMixin', ->
   beforeEach (done) ->
     class FakeModel
       ModelBaseMixin.includeInto this
-      constructor: ->
-        @initModel()
+      constructor: (params) -> @initModel(params)
       Migration.createTable 'FakeModel', (t) ->
         t.addColumn 'name', 'INTEGER'
         t.addColumn 'email', 'TEXT'

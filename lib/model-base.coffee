@@ -133,13 +133,10 @@ class ModelBaseMixin extends Mixin
       @loadNoCache(obj)
 
   @new: (obj) ->
-    model = new this
-    for key, value of obj when @::hasOwnProperty(key)
-      model[key] = value
-    model
+    new this(obj)
 
   @create: (obj) ->
-    model = @new(obj)
+    model = new this(obj)
     model.save().then -> model
 
   @drop: ->

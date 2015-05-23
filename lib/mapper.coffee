@@ -29,12 +29,20 @@ class Mapper
         @query = new Query(@db)
     defer.promise
 
+  getModel = (tableName) ->
+    Model = ModelBase.models[tableName]
+    unless Model
+      Model = class
+        ModelBase.includeInto  this
+        constructor: (params) -> @initModel(params)
+    Model
+
   sync: ->
     @getDB().then =>
       Migration._finishConfig()
       createPromises = for tableName, tableInfo of Migration.tables
         # extend the model class's attributes
-        ModelBase.models[tableName]?.extendModel this, tableInfo
+        getModel(tableName).extendModel this, tableInfo
         # create the database table
         @query.createTable(tableName, tableInfo.attributes).then =>
           promises = for indexName, column of tableInfo.indexes

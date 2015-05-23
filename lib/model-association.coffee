@@ -19,7 +19,7 @@ class ModelAssociation extends Mixin
     @extendHasOne(opts) for opts in @hasOneAssos
     @extendHasMany(opts) for opts in hasManyAssos
 
-  setBelongsTo = (childOpts, parent, child) ->
+  setBelongsTo = (childOpts, child, parent) ->
     child[privateName(childOpts.as)] = parent
     # set the foreign key
     targetName = childOpts.Target.primaryKeyName
@@ -61,18 +61,24 @@ class ModelAssociation extends Mixin
     opts.Target = ParentModel
     @belongsToAssos.push opts
 
+  removeFromHasMany = (as, parent, child) ->
+    children = parent[as]
+    children.scopeUnobserve ->
+      index = children.indexOf(child)
+      children.splice(index, 1) if index isnt -1
+
+  addIntoHasMany = (as, parent, child) ->
+    children = parent[as]
+    children.scopeUnobserve -> children.push(child)
+
   hasAssosHandler = (as) ->
-    removeFromHasMany = (parent, child) ->
-      children = parent[as]
-      children.scopeUnobserve ->
-        index = children.indexOf(child)
-        children.splice(index, 1) if index isnt -1
+    remove: removeFromHasMany.bind(null, as)
+    add: addIntoHasMany.bind(null, as)
 
-    addIntoHasMany = (parent, child) ->
-      children = parent[as]
-      children.scopeUnobserve -> children.push(child)
-
-    return {remove: removeFromHasMany, add: addIntoHasMany}
+  # hasManyBelongsToAssosHandler = (midTableName, as) ->
+  #   MidModel = ModelBase.models[midTableName]
+  #   add: ()->
+  #     MidModel.create()
 
   getHandlerForHasAssos = (Model, opts) ->
     ParentModel = opts.Target
@@ -101,10 +107,15 @@ class ModelAssociation extends Mixin
     getHandlerFromHasMany(Model) or
     createVirtualHasMany(Model, opts)
 
-  # getHandlerForHasBelongsAssos = (Model, opts) ->
-  #   Target = opts.Target
-  #   for targetOpts in @Target.hasManyBelongsToAssos
-  #     if targetOpts.Target is Model
+  getHandlerForHasBelongsAssos = (Model, opts) ->
+    Target = opts.Target
+    compareTargetOpts = (targetOpts) ->
+      targetOpts.Target is Model and
+      targetOpts.midTableName is opts.midTableName
+
+    for targetOpts in Target.hasManyBelongsToAssos
+      if compareTargetOpts(targetOpts)
+        return hasAssosHandler(targetOpts.as)
 
   @extendBelongsTo: (opts, handler) ->
     key = privateName(opts.as)
@@ -113,7 +124,7 @@ class ModelAssociation extends Mixin
       get: -> this[key] ? null
       set: (val) ->
         origin = this[key]
-        setBelongsTo(opts, val, this)
+        setBelongsTo(opts, this, val)
         if handler
           handler.remove(origin, this) if origin
           handler.add(val, this) if val
@@ -127,9 +138,9 @@ class ModelAssociation extends Mixin
       index = change.index
       creates = val.slice(index, index + change.addedCount)
     for removed in removes when removed
-      handler(null, removed)
+      handler(removed, null)
     for created in creates when created
-      handler(this, created)
+      handler(created, this)
 
   @hasMany: (ChildModel, opts={}) ->
     opts.through ?= defaultThrough(this)
@@ -180,9 +191,9 @@ class ModelAssociation extends Mixin
       get: -> this[key] ? null
       set: (val) ->
         origin = this[key]
-        handler(null, origin) if origin
+        handler(origin, null) if origin
         this[key] = val
-        handler(this, val) if val
+        handler(val, this) if val
 
   @loadAssos: (model) ->
     Q.all [@loadBelongsTo(model), @loadHasOne(model), @loadHasMany(model)]
