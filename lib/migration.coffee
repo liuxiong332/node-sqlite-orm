@@ -16,8 +16,9 @@ class TableInfo
     opts.references = _.extend {name: tableName}, opts
     @references[name] = opts
 
-  createIndex: (indexName, column) ->
-    @indexes[indexName] = column
+  createIndex: (indexName, columns) ->
+    columns = [columns] unless Array.isArray(columns)
+    @indexes[indexName] = columns
 
   _checkPrimaryKey: ->
     @addColumn('id', 'INTEGER', primaryKey: true) unless @primaryKeyName

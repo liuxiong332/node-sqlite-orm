@@ -138,10 +138,10 @@ More sample can refer to below sites:
 
   * *opts*: `Object` the column options
 
-* **createIndex**: `function(indexName, column)` add index for the specific column
+* **createIndex**: `function(indexName, columns)` add index for the specific column
 
   * *indexName*: `String` the index name.
-  * *column*: `String` the column name that need index.
+  * *columns*: `Array` each item of columns is the column name that need index.
 
 * **addReference**: `function(name, tableName, opts)` add foreign key
 
