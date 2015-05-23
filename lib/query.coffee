@@ -36,3 +36,6 @@ class Query
 
   dropTable: (tableName) ->
     Q.ninvoke @db, 'run', QueryGenerator.dropTableStmt(tableName)
+
+  beginTransaction: -> Q.ninvoke @db, 'run', 'BEGIN TRANSACTION'
+  endTransaction: -> Q.ninvoke @db, 'run', 'END TRANSACTION'

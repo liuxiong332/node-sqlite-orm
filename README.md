@@ -10,10 +10,9 @@ the ORM framework for sqlite
 $ npm install --save sqlite-orm
 ```
 
-
 ## Usage
 
-the coffeescript sample code
+The coffeescript sample code
 
 ```coffeescript
 Mapper = require 'sqlite-orm'
@@ -44,7 +43,7 @@ mapper = new Mapper path.resolve(__dirname, 'test.db')
 mapper.sync()
 ```
 
-the corresponding javascript code
+The corresponding javascript code.
 
 ```javascript
 var Mapper = require('sqlite-orm');
@@ -83,115 +82,128 @@ mapper.sync().then(function() {
 });
 ```
 
+More sample can refer to below sites:
+
+* [exchange model wrapper](https://github.com/liuxiong332/xmail-exchange)
+
 ## API
 
 ### Mapper
 
-**sync** `function()` synchronize the model definition and the database
+* **sync** `function()` synchronize the model definition and the database
 
-  *return*: `Promise`
+  * *return*: `Promise`
 
-**close** `function()` close the database
+* **close** `function()` close the database
 
-  *return*: `Promise`
+  * *return*: `Promise`
 
-**Migration** `Migration` get the Migration class
+* **beginTransaction**: `function()` begin the transaction.
 
-**ModelBase** `ModelBase` get the ModelBase class
+* **endTransaction**: `function()` end the transaction.
 
-**INTEGER** `String` the INTEGER data type
+* **scopeTransaction**: `function(callback)` make the callback invoke in the transaction, after this callback complete, `endTransaction` will invoke automatically.
 
-**REAL** `String` the REAL data type
+* **Migration** `Migration` get the Migration class
 
-**TEXT** `String` the TEXT data type
+* **ModelBase** `ModelBase` get the ModelBase class
 
-**BLOB** `String` the BLOB data type
+* **INTEGER** `String` the INTEGER data type
+
+* **REAL** `String` the REAL data type
+
+* **TEXT** `String` the TEXT data type
+
+* **BLOB** `String` the BLOB data type
 
 ### Migration
 
-**createTable**: `function(tableName, callback)` create the database table
+* **createTable**: `function(tableName, callback)` create the database table
 
-  *tableName*: `String`
+  * *tableName*: `String`
 
-  *callback*: `function(tableInfo)` create the columns in this callback
+  * *callback*: `function(tableInfo)` create the columns in this callback
 
-    *tableInfo*: `TableInfo` the class to create the columns and index
+    * *tableInfo*: `TableInfo` the class to create the columns and index
 
-**clear**: `function()` clear the table definition
+* **clear**: `function()` clear the table definition
 
 ### TableInfo
 
-**addColumn**: `function(name, type, opts)` add the table column
+* **addColumn**: `function(name, type, opts)` add the table column
 
-  *name*: `String` the column name
+  * *name*: `String` the column name
 
-  *type*: `String` the column data type, such as `INTEGER` or `TEXT`
+  * *type*: `String` the column data type, such as `INTEGER` or `TEXT`
 
-  *opts*: `Object` the column options
+  * *opts*: `Object` the column options
 
-**addIndex**: `function(names...)` add index for the specific column
+* **createIndex**: `function(indexName, column)` add index for the specific column
 
-  *names*: `Array` the column names that need index
+  * *indexName*: `String` the index name.
+  * *column*: `String` the column name that need index.
 
-**addReference**: `function(name, tableName, opts)` add foreign key
+* **addReference**: `function(name, tableName, opts)` add foreign key
 
-  *name*: the column name that need index
+  * *name*: the column name that need index
 
-  *tableName*: the name of table that the index will point to
+  * *tableName*: the name of table that the index will point to
 
-  *opts*: `Object` the index options
+  * *opts*: `Object` the index options
 
 ### ModelBase
 
-**initAssos**: `function()` declare the association
+* **initAssos**: `function()` declare the association
 
-all the subclass must implement this interface to declare the association
+  all the subclass must implement this interface to declare the association
 
-**@hasOne**: `function(ChildModel, opts)` declare this Model has one child Model
+* **@hasOne**: `function(ChildModel, opts)` declare this Model has one child Model
 
-  *ChildModel*: `ModelBase` the child Model class
+  * *ChildModel*: `ModelBase` the child Model class
 
-  *opts*: `Object` the options used for hasOne association
+  * *opts*: `Object` the options used for hasOne association
 
-    *as*: `String`(optional) the property name to refer to the ChildModel instance,
+    * *as*: `String`(optional) the property name to refer to the ChildModel instance,
     the default value is "#{childModel}". e.g. ChildModel is 'ChildModel', then the as
     value is `childModel`
 
-**@hasMany**: `function(ChildModel, opts)` declare this Model has many children.
+* **@hasMany**: `function(ChildModel, opts)` declare this Model has many children.
 
-*ChildModel*: `ModelBase` the child Model class
+  * *ChildModel*: `ModelBase` the child Model class
 
-*opts*: `Object` the options used for hasOne association
+  * *opts*: `Object` the options used for hasOne association
 
-  *as*: `String`(optional) the property name to refer to the ChildModel instances,
-  the default value is "#{childModels}". e.g. ChildModel is 'ChildModel', then the as
-  value is `childModels`
+    * *as*: `String`(optional) the property name to refer to the ChildModel instances,
+    the default value is "#{childModels}". e.g. ChildModel is 'ChildModel', then the as
+    value is `childModels`
 
-**@belongsTo**: `function(ParentModel, opts)` declare this Model is member of ParentModel
+* **@belongsTo**: `function(ParentModel, opts)` declare this Model is member of ParentModel
 
-  *ParentModel*: `ModelBase` the parent Model class
+  * *ParentModel*: `ModelBase` the parent Model class
 
-  *opts*: `Object` the options used for hasOne association
+  * *opts*: `Object` the options used for hasOne association
 
-    *through*: `String`(optional) the column name that used for foreign key,
+    * *through*: `String`(optional) the column name that used for foreign key,
     the default value is "#{ParentModel}#{primaryKey}". e.g. ParentModel name is 'ParentModel',
     primaryKey is 'id', then the foreign key is `parentModelId`.
 
-    *as*: `String`(optional) the property name to refer to the ParentModel instance,
+    * *as*: `String`(optional) the property name to refer to the ParentModel instance,
     the default value is "#{ParentModel}". e.g. ParentModel is 'ParentModel', then the as
     value is `parentModel`
 
-**@new**: `function(obj)` create a new model object, not saved into database
+* **@new**: `function(obj)` create a new model object, not saved into database
 
   *obj*: `Object` the attributes list
 
-**@create**: `function(obj)` just like `@new`, but save into database
+* **@create**: `function(obj)` just like `@new`, but save into database
 
-**@drop**: `function()` drop the table
+* **@drop**: `function()` drop the table
 
-**@find**: `function(where, opts)` find the object that match the `where` statement
+* **@destroy**: `function()` destroy this model object and delete the db row.
 
-**@findAll**: `function(where, opts)` find all of object match the condition
+* **@find**: `function(where, opts)` find the object that match the `where` statement
+
+* **@findAll**: `function(where, opts)` find all of object match the condition
 
 ## Contributing
 
@@ -206,9 +218,9 @@ Copyright (c) 2015 liuxiong. Licensed under the MIT license.
 
 [npm-url]: https://npmjs.org/package/sqlite-orm
 [npm-image]: https://badge.fury.io/js/sqlite-orm.svg
-[travis-url]: https://travis-ci.org/liuxiong332/sqlite-orm
-[travis-image]: https://travis-ci.org/liuxiong332/sqlite-orm.svg?branch=master
-[daviddm-url]: https://david-dm.org/liuxiong332/sqlite-orm
-[daviddm-image]: https://david-dm.org/liuxiong332/sqlite-orm.svg?theme=shields.io
-[coveralls-url]: https://coveralls.io/r/liuxiong332/sqlite-orm
-[coveralls-image]: https://coveralls.io/repos/liuxiong332/sqlite-orm/badge.png
+[travis-url]: https://travis-ci.org/liuxiong332/node-sqlite-orm
+[travis-image]: https://travis-ci.org/liuxiong332/node-sqlite-orm.svg?branch=master
+[daviddm-url]: https://david-dm.org/liuxiong332/node-sqlite-orm
+[daviddm-image]: https://david-dm.org/liuxiong332/node-sqlite-orm.svg?theme=shields.io
+[coveralls-url]: https://coveralls.io/r/liuxiong332/node-sqlite-orm
+[coveralls-image]: https://coveralls.io/repos/liuxiong332/node-sqlite-orm/badge.png

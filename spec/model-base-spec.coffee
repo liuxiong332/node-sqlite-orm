@@ -62,6 +62,11 @@ describe 'ModelBaseMixin', ->
     .then -> done()
     .catch done
 
+  it 'transaction', (done) ->
+    mapper.beginTransaction()
+    .then -> mapper.endTransaction()
+    .then -> done()
+
 describe 'ModelBaseMixin basic association', ->
   [ParentModel, ChildModel, SomeModel, mapper] = []
   beforeEach (done) ->

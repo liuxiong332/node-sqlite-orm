@@ -45,22 +45,20 @@ class Mapper
         Model.initAssos?() for name, Model of ModelBase.models
         Model.extendAssos() for name, Model of ModelBase.models
 
+  beginTransaction: -> @query.beginTransaction()
+
+  endTransaction: -> @query.endTransaction()
+
+  scopeTransaction: (callback) ->
+    @query.beginTransaction()
+    .then -> callback()
+    .then => @query.endTransaction()
+
   dropAllTables: ->
     Q.all (model.drop() for name, model of ModelBase.models)
 
   close: ->
     Q.ninvoke @db, 'close'
-
-  beginTransaction: ->
-    Q.ninvoke @db, 'run', 'BEGIN TRANSACTION'
-
-  endTransaction: ->
-    Q.ninvoke @db, 'run', 'END TRANSACTION'
-
-  scopeTransaction: (callback) ->
-    @beginTransaction()
-    .then -> callback()
-    .then => @endTransaction()
 
   getQuery: -> @query
   @Migration = Migration
