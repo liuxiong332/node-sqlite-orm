@@ -9,7 +9,7 @@ class ModelAssociation extends Mixin
     @belongsToAssos = []
     @hasOneAssos = []
     @hasManyAssos = []
-    @hasBelongsToManyAssos = []
+    @hasManyBelongsToAssos = []
 
   @extendAssos: ->
     @counter = 0
@@ -75,24 +75,21 @@ class ModelAssociation extends Mixin
     return {remove: removeFromHasMany, add: addIntoHasMany}
 
   getHandlerForHasAssos = (Model, opts) ->
-    findInhasAssos = (Model, assosList, childOpts, callback) ->
-      for parentOpts in assosList when parentOpts.Target is Model
-        return callback(parentOpts) if parentOpts.through is childOpts.through
+    ParentModel = opts.Target
+    getHandlerFromHasOne = (Model) ->
+      for parentOpts in ParentModel.hasOneAssos
+        if parentOpts.Target is Model and opts.through is parentOpts.through
+          changeHandler = (parent, child) ->
+            parent[privateName(parentOpts.as)] = child
+          return {remove: changeHandler, add: changeHandler}
 
-    getHandlerFromHasOne = (Model, childOpts) ->
-      ParentModel =
-      findInhasAssos Model, childOpts.Target.hasOneAssos, childOpts, ({as}) ->
-        changeHandler = (parent, child) ->
-          parent[privateName(as)] = child
-        return {remove: changeHandler, add: changeHandler}
-
-    getHandlerFromHasMany = (Model, childOpts) ->
-      findInhasAssos Model, childOpts.Target.hasManyAssos, childOpts, ({as}) ->
-        hasAssosHandler(as)
+    getHandlerFromHasMany = (Model) ->
+      for parentOpts in ParentModel.hasManyAssos
+        if parentOpts.Target is Model and opts.through is parentOpts.through
+          return hasAssosHandler(parentOpts.as)
 
     createVirtualHasMany = (Model, childOpts) ->
       childOpts.remoteVirtual = true
-      ParentModel = childOpts.Target
       opts =
         as: "@#{ParentModel.counter++}"
         through: childOpts.through, virtual: true, Target: Model
@@ -100,9 +97,14 @@ class ModelAssociation extends Mixin
       ParentModel.extendHasMany opts, setBelongsTo.bind(null, childOpts)
       hasAssosHandler(opts.as)
 
-    getHandlerFromHasOne(Model, opts) or
-    getHandlerFromHasMany(Model, opts) or
+    getHandlerFromHasOne(Model) or
+    getHandlerFromHasMany(Model) or
     createVirtualHasMany(Model, opts)
+
+  # getHandlerForHasBelongsAssos = (Model, opts) ->
+  #   Target = opts.Target
+  #   for targetOpts in @Target.hasManyBelongsToAssos
+  #     if targetOpts.Target is Model
 
   @extendBelongsTo: (opts, handler) ->
     key = privateName(opts.as)
@@ -136,6 +138,25 @@ class ModelAssociation extends Mixin
     @hasManyAssos.push opts
 
   @extendHasMany: (opts, handler) ->
+    handler ?= getHandlerInBelongsAssos(this, opts)
+    key = privateName(opts.as)
+    Object.defineProperty @prototype, opts.as, get: ->
+      unless (val = this[key])?
+        val = this[key] = new ObserverArray (changes) =>
+          for change in changes
+            _watchHasManyChange.call(this, change, val, handler)
+        val.observe()
+      val
+
+  @hasManyBelongsTo: (TargetModel, opts={}) ->
+    opts.midTableName = this.name + TargetModel.name
+    opts.sourceThrough ?= defaultThrough(this)
+    opts.targetThrough ?= defaultThrough(TargetModel)
+    opts.as ?= camelCase(TargetModel.name) + 's'
+    opts.Target = TargetModel
+    @hasManyBelongsToAssos.push opts
+
+  @extendHasManyBelongsTo: (opts, handler) ->
     handler ?= getHandlerInBelongsAssos(this, opts)
     key = privateName(opts.as)
     Object.defineProperty @prototype, opts.as, get: ->
