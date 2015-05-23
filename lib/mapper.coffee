@@ -33,6 +33,7 @@ class Mapper
     Model = ModelBase.models[tableName]
     unless Model
       Model = class
+        @_name = tableName
         ModelBase.includeInto  this
         constructor: (params) -> @initModel(params)
     Model

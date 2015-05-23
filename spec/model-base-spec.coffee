@@ -4,8 +4,21 @@ Migration = require '../lib/migration'
 path = require 'path'
 Q = require 'q'
 
+class MapperRunner
+  start: (done) ->
+    @mapper = new Mapper path.resolve(__dirname, 'temp/test.db')
+    @mapper.sync().then -> done()
+    .catch (err) -> done(err)
+
+  stop: (done) ->
+    @mapper.dropAllTables().then =>
+      Migration.clear()
+      @mapper.close()
+      done()
+    .catch(done)
+
 describe 'ModelBaseMixin', ->
-  [mapper, FakeModel] = []
+  [runner, FakeModel] = []
 
   beforeEach (done) ->
     class FakeModel
@@ -16,18 +29,10 @@ describe 'ModelBaseMixin', ->
         t.addColumn 'email', 'TEXT'
 
     FakeModel.models.FakeModel.should.equal FakeModel
-    fileName = path.resolve(__dirname, 'temp/test.db')
-    mapper = new Mapper(fileName)
-    mapper.sync().then -> done()
-    .catch (err) -> done(err)
+    runner = new MapperRunner
+    runner.start(done)
 
-  afterEach (done) ->
-    mapper.dropAllTables()
-    .then ->
-      Migration.clear()
-      mapper.close()
-      done()
-    .catch(done)
+  afterEach (done) -> runner.stop(done)
 
   it 'get FakeModel attributes', (done) ->
     FakeModel.prototype.hasOwnProperty('name').should.ok
@@ -62,12 +67,12 @@ describe 'ModelBaseMixin', ->
     .catch done
 
   it 'transaction', (done) ->
-    mapper.beginTransaction()
-    .then -> mapper.endTransaction()
+    runner.mapper.beginTransaction()
+    .then -> runner.mapper.endTransaction()
     .then -> done()
 
 describe 'ModelBaseMixin basic association', ->
-  [ParentModel, ChildModel, SomeModel, mapper] = []
+  [ParentModel, ChildModel, SomeModel, runner] = []
   beforeEach (done) ->
     Migration.createTable 'ParentModel', (t) ->
       t.addColumn 'name', 'TEXT'
@@ -100,18 +105,10 @@ describe 'ModelBaseMixin basic association', ->
       @initAssos: ->
         @hasOne ChildModel
         @hasMany SomeModel
+    runner = new MapperRunner
+    runner.start(done)
 
-    mapper = new Mapper path.resolve(__dirname, 'temp/test.db')
-    mapper.sync().then -> done()
-    .catch (err) -> done(err)
-
-  afterEach (done) ->
-    mapper.dropAllTables()
-    .then ->
-      Migration.clear()
-      mapper.close()
-      done()
-    .catch(done)
+  afterEach (done) -> runner.stop(done)
 
   it 'belongsTo', (done) ->
     child = new ChildModel name: 'child'
@@ -173,7 +170,7 @@ describe 'ModelBaseMixin basic association', ->
     .then ->
       (child.parentModelId is null).should.ok
     .then ->
-      mapper.cache.clear()
+      runner.mapper.cache.clear()
       SomeModel.getById(1)
     .then (model) ->
       done()
@@ -188,7 +185,7 @@ describe 'ModelBaseMixin basic association', ->
       Q.delay(0)
     .then -> Q.all [child.save(), parent.save()]
     .then ->
-      mapper.cache.clear()
+      runner.mapper.cache.clear()
       SomeModel.getById(1)
     .then (child) ->
       child.parentModel.should.ok
@@ -196,7 +193,7 @@ describe 'ModelBaseMixin basic association', ->
     .catch done
 
 describe 'ModelBaseMixin association to self', ->
-  [Model, mapper] = []
+  [Model, runner] = []
 
   beforeEach (done) ->
     Migration.createTable 'Model', (t) ->
@@ -209,16 +206,10 @@ describe 'ModelBaseMixin association to self', ->
       @belongsTo Model, {through: 'parentId', as: 'parent'}
       @hasMany Model, {through: 'parentId', as: 'children'}
 
-    mapper = new Mapper path.resolve(__dirname, 'temp/test.db')
-    mapper.sync().then -> done()
-    .catch (err) -> done(err)
+    runner = new MapperRunner
+    runner.start(done)
 
-  afterEach (done) ->
-    Model.drop().then ->
-      Migration.clear()
-      mapper.close()
-      done()
-    .catch(done)
+  afterEach (done) -> runner.stop(done)
 
   it 'belongsTo and hasMany', (done) ->
     models = for i in [0..2]
@@ -232,7 +223,7 @@ describe 'ModelBaseMixin association to self', ->
       models[2].parent.should.equal models[0]
       Q.all (model.save() for model in models)
     .then ->
-      mapper.cache.clear()
+      runner.mapper.cache.clear()
       Model.getById(1)
     .then (model0) ->
       model0.children.length.should.equal 2
@@ -242,7 +233,7 @@ describe 'ModelBaseMixin association to self', ->
     .catch done
 
 describe 'ModelBaseMixin in asymmetric association', ->
-    [Model, mapper] = []
+    [Model, runner] = []
 
     beforeEach (done) ->
       Migration.createTable 'Model', (t) ->
@@ -257,17 +248,10 @@ describe 'ModelBaseMixin in asymmetric association', ->
         @initAssos: ->
           @hasMany Model, {as: 'children', through: 'parentId'}
           @belongsTo Model, {as: 'parent', through: 'childId'}
+      runner = new MapperRunner
+      runner.start(done)
 
-      mapper = new Mapper path.resolve(__dirname, 'temp/test.db')
-      mapper.sync().then -> done()
-      .catch (err) -> done(err)
-
-    afterEach (done) ->
-      Model.drop().then ->
-        Migration.clear()
-        mapper.close()
-        done()
-      .catch(done)
+    afterEach (done) -> runner.stop(done)
 
     it 'work properly', (done) ->
       models = for i in [0..2]
@@ -281,7 +265,7 @@ describe 'ModelBaseMixin in asymmetric association', ->
         models[2]["@0"].get(0).should.equal models[0]
         Q.all (model.save() for model in models)
       .then ->
-        mapper.cache.clear()
+        runner.mapper.cache.clear()
         Model.getById(1)
       .then (model) ->
         Q.delay()
@@ -299,3 +283,32 @@ describe 'ModelBaseMixin in asymmetric association', ->
       .then (model) ->
         done()
       .catch done
+
+describe 'ModelBaseMixin in hasManyBelongsTo association', ->
+  [Model, runner] = []
+  beforeEach (done) ->
+    Migration.createTable 'Source', (t) ->
+      t.addColumn 'name', 'TEXT'
+
+    Migration.createTable 'Target', (t) ->
+      t.addColumn 'name', 'TEXT'
+
+    Migration.createTable 'SourceTarget', (t) ->
+      t.addReference 'sourceId', 'Source'
+      t.addReference 'targetId', 'Target'
+
+    class Source
+      ModelBaseMixin.includeInto this
+      constructor: (params) -> @initModel params
+      @initAssos: -> @hasManyBelongsTo Target
+
+    class Target
+      ModelBaseMixin.includeInto this
+      constructor: (params) -> @initModel params
+
+    runner = new MapperRunner
+    runner.start(done)
+
+  afterEach (done) -> runner.stop(done)
+
+  it.only 'hasManyBelongsTo',  ->

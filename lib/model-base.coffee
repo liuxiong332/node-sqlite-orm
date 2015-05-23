@@ -15,7 +15,8 @@ class ModelBaseMixin extends Mixin
     this[key] = val for key, val of params
 
   @included: ->
-    ModelBaseMixin.models[this.name] = this if this.name
+    modelName = this._name or this.name
+    ModelBaseMixin.models[modelName] = this if modelName
     @_initAssos()
 
   @defineAttr: (name, opts) ->

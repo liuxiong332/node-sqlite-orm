@@ -15,9 +15,12 @@ class ModelAssociation extends Mixin
     @counter = 0
     belongsToAssos = _.clone(@belongsToAssos)
     hasManyAssos =  _.clone(@hasManyAssos)
+    hasManyBelongsToAssos =  _.clone(@hasManyBelongsToAssos)
+
     @extendBelongsTo(opts) for opts in belongsToAssos
     @extendHasOne(opts) for opts in @hasOneAssos
     @extendHasMany(opts) for opts in hasManyAssos
+    @extendHasManyBelongsTo(opts) for opts in hasManyBelongsToAssos
 
   setBelongsTo = (childOpts, child, parent) ->
     child[privateName(childOpts.as)] = parent
@@ -80,7 +83,8 @@ class ModelAssociation extends Mixin
     add: addIntoHasMany.bind(null, as)
 
   hasManyBelongsToAssosHandler = (opts, targetOpts) ->
-    MidModel = ModelBase.models[midTableName]
+    ModelBase = require './model-base'
+    MidModel = ModelBase.models[opts.midTableName]
     st = opts.sourceThrough
     tt = opts.targetThrough
 
@@ -185,19 +189,22 @@ class ModelAssociation extends Mixin
     opts.Target = ChildModel
     @hasManyAssos.push opts
 
+  arrayGetter = (key, handler) ->
+    unless (val = this[key])?
+      val = this[key] = new ObserverArray (changes) =>
+        for change in changes
+          _watchHasManyChange.call(this, change, val, handler)
+      val.observe()
+    val
+
   @extendHasMany: (opts, handler) ->
     handler ?= getHandlerInBelongsAssos(this, opts)
     key = privateName(opts.as)
     Object.defineProperty @prototype, opts.as, get: ->
-      unless (val = this[key])?
-        val = this[key] = new ObserverArray (changes) =>
-          for change in changes
-            _watchHasManyChange.call(this, change, val, handler)
-        val.observe()
-      val
+      arrayGetter.call(this, key, handler)
 
   @hasManyBelongsTo: (TargetModel, opts={}) ->
-    opts.midTableName = this.name + TargetModel.name
+    opts.midTableName ?= this.name + TargetModel.name
     opts.sourceThrough ?= defaultThrough(this)
     opts.targetThrough ?= defaultThrough(TargetModel)
     opts.as ?= camelCase(TargetModel.name) + 's'
@@ -208,12 +215,7 @@ class ModelAssociation extends Mixin
     handler ?= getHandlerForHasBelongsAssos(this, opts)
     key = privateName(opts.as)
     Object.defineProperty @prototype, opts.as, get: ->
-      unless (val = this[key])?
-        val = this[key] = new ObserverArray (changes) =>
-          for change in changes
-            _watchHasManyChange.call(this, change, val, handler)
-        val.observe()
-      val
+      arrayGetter.call(this, key, handler)
 
   @hasOne: (ChildModel, opts={}) ->
     opts.through ?= defaultThrough(this)
