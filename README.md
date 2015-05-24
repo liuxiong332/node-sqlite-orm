@@ -116,6 +116,8 @@ More sample can refer to below sites:
 
 * **@BLOB** `String` the BLOB data type
 
+* **DATETIME** `String` the Date date type. If declare `DATETIME`, then the type of this attribute will be `Date`. 
+
 ### Migration
 
 * **@createTable**: `function(tableName, callback)` create the database table
