@@ -100,6 +100,9 @@ class QueryGenerator
     stmts = "(#{stmts})" if isParenthesis
     stmts
 
+  valueListStr: (values) ->
+    (wrapValue(val) for val in values).join(', ')
+
   @oneExpr: (key, value) ->
     if key in ['$and', '$or']
       resArr = (@oneExpr(subKey, subVal) for subKey, subVal of value)
@@ -120,9 +123,9 @@ class QueryGenerator
             @oneExpr(key, "#{nextKey}": nextVal)
           "NOT #{exprStmtsJoin(resArr, " AND ")}"
         else if subKey is '$in'
-          "#{key} IN (#{subVal.join(', ')})"
+          "#{key} IN (#{valueListStr(subVal)})"
         else if subKey is '$notIn'
-          "#{key} NOT IN (#{subVal.join(', ')})"
+          "#{key} NOT IN (#{valueListStr(subVal)})"
         else if subKey is '$between'
           "#{key} BETWEEN #{subVal.join(' AND ')}"
         else if subKey is '$notBetween'

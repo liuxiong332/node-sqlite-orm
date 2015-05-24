@@ -33,6 +33,9 @@ class ObserverArray
       @observeFunc [change]
     removed
 
+  clear: ->
+    @splice(0, @list.length)
+
   push: (elements...) ->
     @splice(@list.length, 0, elements...)
 

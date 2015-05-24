@@ -11,6 +11,11 @@ class ModelAssociation extends Mixin
     @hasManyAssos = []
     @hasManyBelongsToAssos = []
 
+  ModelBase = null
+
+  @included: ->
+    ModelBase = this
+
   @extendAssos: ->
     @counter = 0
     belongsToAssos = _.clone(@belongsToAssos)
@@ -83,7 +88,6 @@ class ModelAssociation extends Mixin
     add: addIntoHasMany.bind(null, as)
 
   hasManyBelongsToAssosHandler = (opts, targetOpts) ->
-    ModelBase = require './model-base'
     MidModel = ModelBase.models[opts.midTableName]
     st = opts.sourceThrough
     tt = opts.targetThrough
@@ -272,11 +276,31 @@ class ModelAssociation extends Mixin
           members.scopeUnobserve -> members.splice(0, 0, children...)
     Q.all promises
 
+  @loadHasManyBelongsTo: (model) ->
+    keyName = @primaryKeyName
+    promises = []
+    @hasManyBelongsToAssos.forEach (opts) ->
+      return if opts.virtual
+      midModel = ModelBase.models[opts.midTableName]
+      where = "#{opts.sourceThrough}": model[keyName]
+      promises.push midModel.findAll(where).then (children) ->
+        targetThrough = opts.targetThrough
+        Target = opts.Target
+        targetKeyName = Target.primaryKeyName
+        targetIds = (child[targetThrough] for child in children)
+        Target.findAll("#{targetKeyName}": {'$in': targetIds})
+      .then (targets) ->
+        members = model[opts.as]
+        if opts.remoteVirtual
+          members.splice(0, 0, targets...)
+        else
+          members.scopeUnobserve -> members.splice(0, 0, targets...)
+    Q.all promises
+
   destroyAssos: ->
     Model = this.constructor
 
     this[opts.as] = null for opts in Model.belongsToAssos
     this[opts.as] = null for opts in Model.hasOneAssos
-    for opts in Model.hasManyAssos
-      children = this[opts.as]
-      children.splice(0, children.length)
+    this[opts.as].clear() for opts in Model.hasManyAssos
+    this[opts.as].clear() for opts in Model.hasManyBelongsToAssos
