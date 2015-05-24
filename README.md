@@ -176,6 +176,18 @@ More sample can refer to below sites:
     * *as*: `String`(optional) the property name to refer to the ChildModel instances,
     the default value is "#{childModels}". e.g. ChildModel is 'ChildModel', then the as
     value is `childModels`
+* **@hasManyBelongsTo**: `function(TargetModel, opts)` declare this Model and the target Model is N-N connection.
+  The description of this connection can refer to
+  [rails association guide](http://guides.rubyonrails.org/association_basics.html#the-has-and-belongs-to-many-association)
+
+  * *TargetModel*: `ModelBase` the target Model class
+
+  * *opts*: `Object` the options used for this association.
+
+    * *midTableName*: `String` the reference table name.
+    * *sourceThrough*: `String` the column foreign key name that refer the Model.
+    * *targetThrough*: `String` the column foreign key name that refer the TargetModel.
+    * *as*: `String` just like `@hasMany` or `@hasOne`
 
 * **@belongsTo**: `function(ParentModel, opts)` declare this Model is member of ParentModel
 
