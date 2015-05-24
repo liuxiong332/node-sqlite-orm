@@ -239,7 +239,10 @@ class ModelAssociation extends Mixin
         handler.add(val, this) if val
 
   @loadAssos: (model) ->
-    Q.all [@loadBelongsTo(model), @loadHasOne(model), @loadHasMany(model)]
+    Q.all [
+      @loadBelongsTo(model), @loadHasOne(model), @loadHasMany(model),
+      @loadHasManyBelongsTo(model)
+    ]
 
   @loadBelongsTo: (model) ->
     promises = []
@@ -284,17 +287,17 @@ class ModelAssociation extends Mixin
       midModel = ModelBase.models[opts.midTableName]
       where = "#{opts.sourceThrough}": model[keyName]
       promises.push midModel.findAll(where).then (children) ->
+        return if children.length is 0
         targetThrough = opts.targetThrough
-        Target = opts.Target
-        targetKeyName = Target.primaryKeyName
+        targetKeyName = opts.Target.primaryKeyName
         targetIds = (child[targetThrough] for child in children)
-        Target.findAll("#{targetKeyName}": {'$in': targetIds})
-      .then (targets) ->
-        members = model[opts.as]
-        if opts.remoteVirtual
-          members.splice(0, 0, targets...)
-        else
-          members.scopeUnobserve -> members.splice(0, 0, targets...)
+        where = "#{targetKeyName}": {'$in': targetIds}
+        opts.Target.findAll(where).then (targets) ->
+          members = model[opts.as]
+          if opts.remoteVirtual
+            members.splice(0, 0, targets...)
+          else
+            members.scopeUnobserve -> members.splice(0, 0, targets...)
     Q.all promises
 
   destroyAssos: ->

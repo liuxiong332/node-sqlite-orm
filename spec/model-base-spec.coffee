@@ -268,9 +268,6 @@ describe 'ModelBaseMixin in asymmetric association', ->
         runner.mapper.cache.clear()
         Model.getById(1)
       .then (model) ->
-        Q.delay()
-        model
-      .then (model) ->
         model.parent.name.should.equal '2'
         model.parent['@0'].get(0).should.equal model
         model1 = model.children.get(0)
@@ -321,5 +318,15 @@ describe 'ModelBaseMixin in hasManyBelongsTo association', ->
     .then ->
       src.targets.pop()
       target['@0'].length.should.equal 0
+    .then ->
+      ModelBaseMixin.models['SourceTarget'].create {sourceId: 1, targetId: 1}
+    .then ->
+      runner.mapper.cache.clear()
+      Source.getById(1)
+    .then (src) ->
+      src.targets.length.should.equal 1
+      src.targets.get(0).destroy().then -> src
+    .then (src) ->
+      src.targets.length.should.equal 0
       done()
     .catch done
