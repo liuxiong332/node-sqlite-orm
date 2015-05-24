@@ -21,10 +21,15 @@ class ModelBaseMixin extends Mixin
 
   @defineAttr: (name, opts) ->
     key = '_' + name
-    opts.default ?= null
+    defaultVal = opts.default ? null
+    isDate = opts.type is 'DATETIME'
+    opts.type = 'INTEGER' if isDate
     Object.defineProperty @prototype, name,
-      get: -> this[key] ? opts.default
+      get: ->
+        val = this[key] ? defaultVal
+        if isDate then new Date(val) else val
       set: (val) ->
+        val = if isDate and val instanceof Date then val.getTime() else val
         this[key] = val
         @changeFields[name] = val
 

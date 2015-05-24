@@ -77,3 +77,4 @@ class Mapper
   @REAL = 'REAL'
   @TEXT = 'TEXT'
   @BLOB = 'BLOB'
+  @DATETIME = 'DATETIME'

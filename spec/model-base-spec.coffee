@@ -27,6 +27,7 @@ describe 'ModelBaseMixin', ->
       Migration.createTable 'FakeModel', (t) ->
         t.addColumn 'name', 'INTEGER'
         t.addColumn 'email', 'TEXT'
+        t.addColumn 'date', 'DATETIME'
 
     FakeModel.models.FakeModel.should.equal FakeModel
     runner = new MapperRunner
@@ -40,10 +41,12 @@ describe 'ModelBaseMixin', ->
     FakeModel.tableName.should.equal 'FakeModel'
     FakeModel.primaryKeyName.should.equal 'id'
 
-    FakeModel.create({name: 'hello', email: 'hello@xx.xx'})
+    date = new Date
+    FakeModel.create({name: 'hello', email: 'hello@xx.xx', date: date})
     .then (model) ->
       model.name.should.equal 'hello'
       model.email.should.equal 'hello@xx.xx'
+      model.date.getTime().should.equal date.getTime()
       done()
     .catch done
 
