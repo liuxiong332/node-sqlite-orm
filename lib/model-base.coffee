@@ -19,17 +19,29 @@ class ModelBaseMixin extends Mixin
     ModelBaseMixin.models[this._name] = this
     @_initAssos()
 
+  getHook = (name) ->
+    hookName = "$#{name}Hook"
+    hookObj = this[hookName]
+    if hookObj instanceof Function
+      hookObj = {get: hookObj}
+    hookObj
+
   @defineAttr: (name, opts) ->
     key = '_' + name
     defaultVal = opts.default ? null
     isDate = opts.type is 'DATETIME'
     opts.type = 'INTEGER' if isDate
+    hookFunc = getHook.call(this, name)
     Object.defineProperty @prototype, name,
       get: ->
         val = this[key] ? defaultVal
-        if isDate then new Date(val) else val
+        val = new Date(val) if isDate
+        val = hookFunc.get(val) or val if hookFunc? and hookFunc.get?
+        val
       set: (val) ->
-        val = if isDate and val instanceof Date then val.getTime() else val
+        if isDate and val instanceof Date
+          val = val.getTime()
+        val = hookFunc.set(val) or val if hookFunc? and hookFunc.set?
         this[key] = val
         @changeFields[name] = val
 

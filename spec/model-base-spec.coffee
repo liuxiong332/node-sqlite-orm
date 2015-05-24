@@ -29,13 +29,17 @@ describe 'ModelBaseMixin', ->
         t.addColumn 'email', 'TEXT'
         t.addColumn 'date', 'DATETIME'
 
+      @$emailHook:
+        get: (email) -> email.toUpperCase()
+        set: (email) ->
+
     FakeModel.models.FakeModel.should.equal FakeModel
     runner = new MapperRunner
     runner.start(done)
 
   afterEach (done) -> runner.stop(done)
 
-  it 'get FakeModel attributes', (done) ->
+  it.only 'get FakeModel attributes', (done) ->
     FakeModel.prototype.hasOwnProperty('name').should.ok
     FakeModel.prototype.hasOwnProperty('id').should.ok
     FakeModel.tableName.should.equal 'FakeModel'
@@ -45,7 +49,7 @@ describe 'ModelBaseMixin', ->
     FakeModel.create({name: 'hello', email: 'hello@xx.xx', date: date})
     .then (model) ->
       model.name.should.equal 'hello'
-      model.email.should.equal 'hello@xx.xx'
+      model.email.should.equal 'HELLO@XX.XX'
       model.date.getTime().should.equal date.getTime()
       done()
     .catch done
