@@ -8,8 +8,8 @@ class QueryGenerator
     "CREATE TABLE IF NOT EXISTS #{tableName} (#{columnDefs})"
 
   @columnDef: (name, opts) ->
-    return "#{name} #{opts}" if _.isString(opts)
-    template = "#{name} #{opts.type}"
+    return "#{@wrapName(name)} #{opts}" if _.isString(opts)
+    template = "#{@wrapName(name)} #{opts.type}"
 
     if opts.primaryKey is true
       template += ' PRIMARY KEY'
@@ -26,8 +26,7 @@ class QueryGenerator
 
     if (refs = opts.references)?
       columns = refs.fields
-      if Array.isArray(columns) then columns = columns.join(',')
-      template += " REFERENCES #{refs.name} (#{columns})"
+      template += " REFERENCES #{refs.name} (#{@nameListStr(columns)})"
       if opts.onDelete
         template += " ON DELETE #{opts.onDelete.toUpperCase()}"
       if opts.onUpdate
@@ -38,13 +37,13 @@ class QueryGenerator
     keys = []
     values = []
     for key, value of fields
-      keys.push key
+      keys.push @wrapName(key)
       values.push @wrapValue(value)
     "INSERT INTO #{tableName} (#{keys.join(',')}) VALUES (#{values.join(',')})"
 
   @updateStmt: (tableName, fields, whereOpts) ->
     values = for key, value of fields
-      "#{key} = #{@wrapValue(value)}"
+      "#{@wrapName(key)} = #{@wrapValue(value)}"
     sql = "UPDATE #{tableName} SET #{values.join(', ')}"
     if whereOpts
       whereOpts = whereOpts.where if whereOpts.where?
@@ -59,12 +58,11 @@ class QueryGenerator
       "DELETE FROM #{tableName}"
 
   @orderingTerm: (orderBy) ->
-    if _.isString(orderBy) then orderByFields = orderBy
-    else if Array.isArray(orderBy)
-      orderByFields = orderBy.join(', ')
+    if _.isString(orderBy) or Array.isArray(orderBy)
+      orderByFields = orderBy
     else
-      orderByFields = orderBy.field ? orderBy.fields.join(', ')
-    template = "ORDER BY #{orderByFields}"
+      orderByFields = orderBy.field ? orderBy.fields
+    template = "ORDER BY #{@nameListStr(orderByFields)}"
     if orderBy.asc
       template += " ASC"
     else if orderBy.desc
@@ -72,7 +70,8 @@ class QueryGenerator
     template
 
   @selectStmt: (tableName, where, opts={}) ->
-    columns = opts.field ? opts.fields?.join(', ') ? '*'
+    fields = opts.field ? opts.fields
+    columns = if fields then @nameListStr(fields) else '*'
     template = "SELECT #{columns} FROM #{tableName}"
     if where then template += " WHERE #{@expr(where)}"
     if opts.orderBy then template += " #{@orderingTerm(opts.orderBy)}"
@@ -81,7 +80,8 @@ class QueryGenerator
     template
 
   @createIndexStmt: (tableName, indexName, columns) ->
-    columns = columns.join(', ')
+    columns = @nameListStr(columns)
+    indexName = @wrapName(indexName)
     "CREATE INDEX IF NOT EXISTS #{indexName} ON #{tableName} (#{columns})"
 
   @dropTableStmt: (tableName) ->
@@ -100,9 +100,6 @@ class QueryGenerator
     stmts = "(#{stmts})" if isParenthesis
     stmts
 
-  @valueListStr: (values) ->
-    (@wrapValue(val) for val in values).join(', ')
-
   @oneExpr: (key, value) ->
     if key in ['$and', '$or']
       resArr = (@oneExpr(subKey, subVal) for subKey, subVal of value)
@@ -111,7 +108,7 @@ class QueryGenerator
       resArr = (@oneExpr(subKey, subVal) for subKey, subVal of value)
       "NOT #{exprStmtsJoin(resArr, " AND ")}"
     else if not _.isObject(value)
-      "#{key} = #{@wrapValue(value)}"
+      "#{@wrapName(key)} = #{@wrapValue(value)}"
     else
       resStrs = for subKey, subVal of value
         if subKey in ['$and', '$or']
@@ -123,16 +120,16 @@ class QueryGenerator
             @oneExpr(key, "#{nextKey}": nextVal)
           "NOT #{exprStmtsJoin(resArr, " AND ")}"
         else if subKey is '$in'
-          "#{key} IN (#{@valueListStr(subVal)})"
+          "#{@wrapName(key)} IN (#{@valueListStr(subVal)})"
         else if subKey is '$notIn'
-          "#{key} NOT IN (#{@valueListStr(subVal)})"
+          "#{@wrapName(key)} NOT IN (#{@valueListStr(subVal)})"
         else if subKey is '$between'
-          "#{key} BETWEEN #{subVal.join(' AND ')}"
+          "#{@wrapName(key)} BETWEEN #{subVal.join(' AND ')}"
         else if subKey is '$notBetween'
-          "#{key} NOT BETWEEN #{subVal.join(' AND ')}"
+          "#{@wrapName(key)} NOT BETWEEN #{subVal.join(' AND ')}"
         else if COMPARATOR_MAP[subKey]
           subVal = if subVal is null then 'NULL' else @wrapValue(subVal)
-          "#{key} #{COMPARATOR_MAP[subKey]} #{subVal}"
+          "#{@wrapName(key)} #{COMPARATOR_MAP[subKey]} #{subVal}"
       exprStmtsJoin(resStrs, ' AND ')
 
   @expr: (opts) ->
@@ -143,3 +140,18 @@ class QueryGenerator
     unless val? then 'NULL'
     else if _.isString(val) then "\"#{val}\""
     else val
+
+  @wrapName: (name) ->
+    "'#{name}'"
+
+  @valueListStr: (values) ->
+    if Array.isArray(values)
+      (@wrapValue(val) for val in values).join(', ')
+    else
+      @wrapValue(val)
+
+  @nameListStr: (names) ->
+    if Array.isArray(names)
+      (@wrapName(name) for name in columns).join(', ')
+    else
+      @wrapName(names)
