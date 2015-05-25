@@ -5,7 +5,7 @@ class QueryGenerator
   @createTableStmt: (tableName, attributes) ->
     columnDefs = for colName, opts of attributes
       @columnDef(colName, opts)
-    "CREATE TABLE IF NOT EXISTS #{tableName} (#{columnDefs})"
+    "CREATE TABLE IF NOT EXISTS #{@wrapName(tableName)} (#{columnDefs})"
 
   @columnDef: (name, opts) ->
     return "#{@wrapName(name)} #{opts}" if _.isString(opts)
@@ -22,15 +22,11 @@ class QueryGenerator
       template += ' UNIQUE'
 
     if opts.default?
-      template += " DEFAULT #{opts.default}"
+      template += " DEFAULT #{@wrapValue(opts.default)}"
 
     if (refs = opts.references)?
       columns = refs.fields
       template += " REFERENCES #{refs.name} (#{@nameListStr(columns)})"
-      if opts.onDelete
-        template += " ON DELETE #{opts.onDelete.toUpperCase()}"
-      if opts.onUpdate
-        template += " ON UPDATE #{opts.onUpdate.toUpperCase()}"
     template
 
   @insertStmt: (tableName, fields) ->
@@ -39,18 +35,20 @@ class QueryGenerator
     for key, value of fields
       keys.push @wrapName(key)
       values.push @wrapValue(value)
+    tableName = @wrapName(tableName)
     "INSERT INTO #{tableName} (#{keys.join(',')}) VALUES (#{values.join(',')})"
 
   @updateStmt: (tableName, fields, whereOpts) ->
     values = for key, value of fields
       "#{@wrapName(key)} = #{@wrapValue(value)}"
-    sql = "UPDATE #{tableName} SET #{values.join(', ')}"
+    sql = "UPDATE #{@wrapName(tableName)} SET #{values.join(', ')}"
     if whereOpts
       whereOpts = whereOpts.where if whereOpts.where?
       sql += " WHERE #{@expr(whereOpts)}"
     sql
 
   @removeStmt: (tableName, whereOpts) ->
+    tableName = @wrapName(tableName)
     if whereOpts
       whereOpts = whereOpts.where if whereOpts.where?
       "DELETE FROM #{tableName} WHERE #{@expr(whereOpts)}"
@@ -72,7 +70,7 @@ class QueryGenerator
   @selectStmt: (tableName, where, opts={}) ->
     fields = opts.field ? opts.fields
     columns = if fields then @nameListStr(fields) else '*'
-    template = "SELECT #{columns} FROM #{tableName}"
+    template = "SELECT #{columns} FROM #{@wrapName(tableName)}"
     if where then template += " WHERE #{@expr(where)}"
     if opts.orderBy then template += " #{@orderingTerm(opts.orderBy)}"
     if opts.limit
@@ -82,10 +80,11 @@ class QueryGenerator
   @createIndexStmt: (tableName, indexName, columns) ->
     columns = @nameListStr(columns)
     indexName = @wrapName(indexName)
+    tableName = @wrapName(tableName)
     "CREATE INDEX IF NOT EXISTS #{indexName} ON #{tableName} (#{columns})"
 
   @dropTableStmt: (tableName) ->
-    "DROP TABLE IF EXISTS #{tableName}"
+    "DROP TABLE IF EXISTS #{@wrapName(tableName)}"
 
   COMPARATOR_MAP =
     $eq: '=', $ne: '!=', $gte: '>=', $gt: '>', $lte: '<=', $lt: '<'
@@ -142,7 +141,7 @@ class QueryGenerator
     else val
 
   @wrapName: (name) ->
-    "'#{name}'"
+    "`#{name}`"
 
   @valueListStr: (values) ->
     if Array.isArray(values)
@@ -152,6 +151,6 @@ class QueryGenerator
 
   @nameListStr: (names) ->
     if Array.isArray(names)
-      (@wrapName(name) for name in columns).join(', ')
+      (@wrapName(name) for name in names).join(', ')
     else
       @wrapName(names)

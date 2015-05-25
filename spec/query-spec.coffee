@@ -2,7 +2,7 @@ Query = require '../lib/query'
 sqlite3 = require('sqlite3').verbose()
 path = require 'path'
 
-describe 'query generator', ->
+describe 'query', ->
   [db, query] = []
 
   beforeEach (done) ->

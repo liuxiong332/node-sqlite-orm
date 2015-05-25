@@ -39,7 +39,7 @@ describe 'ModelBaseMixin', ->
 
   afterEach (done) -> runner.stop(done)
 
-  it.only 'get FakeModel attributes', (done) ->
+  it 'get FakeModel attributes', (done) ->
     FakeModel.prototype.hasOwnProperty('name').should.ok
     FakeModel.prototype.hasOwnProperty('id').should.ok
     FakeModel.tableName.should.equal 'FakeModel'
