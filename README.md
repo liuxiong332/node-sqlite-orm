@@ -116,7 +116,7 @@ More sample can refer to below sites:
 
 * **@BLOB** `String` the BLOB data type
 
-* **DATETIME** `String` the Date date type. If declare `DATETIME`, then the type of this attribute will be `Date`. 
+* **DATETIME** `String` the Date date type. If declare `DATETIME`, then the type of this attribute will be `Date`.
 
 ### Migration
 
@@ -161,7 +161,7 @@ More sample can refer to below sites:
 
 * **@hasOne**: `function(ChildModel, opts)` declare this Model has one child Model
 
-  * *ChildModel*: `ModelBase` the child Model class
+  * *ChildModel*: `ModelBase` or `String` the child Model class or class name.
 
   * *opts*: `Object` the options used for hasOne association
 
@@ -171,18 +171,19 @@ More sample can refer to below sites:
 
 * **@hasMany**: `function(ChildModel, opts)` declare this Model has many children.
 
-  * *ChildModel*: `ModelBase` the child Model class
+  * *ChildModel*: `ModelBase` or `String` the child Model class or class name.
 
   * *opts*: `Object` the options used for hasOne association
 
     * *as*: `String`(optional) the property name to refer to the ChildModel instances,
     the default value is "#{childModels}". e.g. ChildModel is 'ChildModel', then the as
     value is `childModels`
+
 * **@hasManyBelongsTo**: `function(TargetModel, opts)` declare this Model and the target Model is N-N connection.
   The description of this connection can refer to
   [rails association guide](http://guides.rubyonrails.org/association_basics.html#the-has-and-belongs-to-many-association)
 
-  * *TargetModel*: `ModelBase` the target Model class
+  * *TargetModel*: `ModelBase` or `String` the target Model class or class name.
 
   * *opts*: `Object` the options used for this association.
 
@@ -193,7 +194,7 @@ More sample can refer to below sites:
 
 * **@belongsTo**: `function(ParentModel, opts)` declare this Model is member of ParentModel
 
-  * *ParentModel*: `ModelBase` the parent Model class
+  * *ParentModel*: `ModelBase` or `String` the parent Model class or class name.
 
   * *opts*: `Object` the options used for hasOne association
 

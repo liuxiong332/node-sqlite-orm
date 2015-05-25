@@ -18,14 +18,11 @@ class ModelAssociation extends Mixin
     ModelBase = this
 
   @extendAssos: ->
-    belongsToAssos = _.clone(@belongsToAssos)
-    hasManyAssos =  _.clone(@hasManyAssos)
-    hasManyBelongsToAssos =  _.clone(@hasManyBelongsToAssos)
-
-    @extendBelongsTo(opts) for opts in belongsToAssos
-    @extendHasOne(opts) for opts in @hasOneAssos
-    @extendHasMany(opts) for opts in hasManyAssos
-    @extendHasManyBelongsTo(opts) for opts in hasManyBelongsToAssos
+    @extendBelongsTo(opts) for opts in @belongsToAssos when not opts.virtual
+    @extendHasOne(opts) for opts in @hasOneAssos when not opts.virtual
+    @extendHasMany(opts) for opts in @hasManyAssos when not opts.virtual
+    for opts in @hasManyBelongsToAssos when not opts.virtual
+      @extendHasManyBelongsTo(opts)
 
   setBelongsTo = (childOpts, child, parent) ->
     child[privateName(childOpts.as)] = parent
@@ -67,10 +64,16 @@ class ModelAssociation extends Mixin
   defaultThrough = (ParentModel) ->
     camelCase(ParentModel._name) + pascalCase(ParentModel.primaryKeyName)
 
+  @_getModel: (name) ->
+    return name if name instanceof Function
+    Model = ModelBase.models[name]
+    throw new Error("model #{name} have not defined") unless Model
+    Model
+
   @belongsTo: (ParentModel, opts={}) ->
     opts.through ?= defaultThrough(ParentModel)
     opts.as ?= camelCase(ParentModel._name)
-    opts.Target = ParentModel
+    opts.Target = @_getModel(ParentModel)
     @belongsToAssos.push opts
 
   removeFromHasMany = (as, parent, child) ->
@@ -190,7 +193,7 @@ class ModelAssociation extends Mixin
   @hasMany: (ChildModel, opts={}) ->
     opts.through ?= defaultThrough(this)
     opts.as ?= camelCase(ChildModel._name) + 's'
-    opts.Target = ChildModel
+    opts.Target = @_getModel(ChildModel)
     @hasManyAssos.push opts
 
   arrayGetter = (key, handler) ->
@@ -212,7 +215,7 @@ class ModelAssociation extends Mixin
     opts.sourceThrough ?= defaultThrough(this)
     opts.targetThrough ?= defaultThrough(TargetModel)
     opts.as ?= camelCase(TargetModel._name) + 's'
-    opts.Target = TargetModel
+    opts.Target = @_getModel(TargetModel)
     @hasManyBelongsToAssos.push opts
 
   @extendHasManyBelongsTo: (opts, handler) ->
@@ -224,7 +227,7 @@ class ModelAssociation extends Mixin
   @hasOne: (ChildModel, opts={}) ->
     opts.through ?= defaultThrough(this)
     opts.as ?= camelCase(ChildModel._name)
-    opts.Target = ChildModel
+    opts.Target = @_getModel(ChildModel)
     @hasOneAssos.push opts
 
   @extendHasOne: (opts) ->
