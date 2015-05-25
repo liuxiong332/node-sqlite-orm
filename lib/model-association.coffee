@@ -6,6 +6,7 @@ _ = require 'underscore'
 module.exports =
 class ModelAssociation extends Mixin
   @_initAssos: ->
+    @counter = 0
     @belongsToAssos = []
     @hasOneAssos = []
     @hasManyAssos = []
@@ -17,7 +18,6 @@ class ModelAssociation extends Mixin
     ModelBase = this
 
   @extendAssos: ->
-    @counter = 0
     belongsToAssos = _.clone(@belongsToAssos)
     hasManyAssos =  _.clone(@hasManyAssos)
     hasManyBelongsToAssos =  _.clone(@hasManyBelongsToAssos)
