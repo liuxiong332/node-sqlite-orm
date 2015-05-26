@@ -78,3 +78,4 @@ class Mapper
   @TEXT = 'TEXT'
   @BLOB = 'BLOB'
   @DATETIME = 'DATETIME'
+  @BOOL = 'BOOL'

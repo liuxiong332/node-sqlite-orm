@@ -28,6 +28,7 @@ describe 'ModelBaseMixin', ->
         t.addColumn 'name', 'INTEGER'
         t.addColumn 'email', 'TEXT'
         t.addColumn 'date', 'DATETIME'
+        t.addColumn 'isGood', 'BOOL'
 
       @$emailHook:
         get: (email) -> email.toUpperCase()
@@ -46,11 +47,12 @@ describe 'ModelBaseMixin', ->
     FakeModel.primaryKeyName.should.equal 'id'
 
     date = new Date
-    FakeModel.create({name: 'hello', email: 'hello@xx.xx', date: date})
+    FakeModel.create({name: 'hello', email: 'hello@xx.xx', date: date, isGood: true})
     .then (model) ->
       model.name.should.equal 'hello'
       model.email.should.equal 'HELLO@XX.XX'
       model.date.getTime().should.equal date.getTime()
+      model.isGood.should.equal true
       done()
     .catch done
 

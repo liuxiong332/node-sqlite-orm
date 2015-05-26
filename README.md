@@ -118,6 +118,8 @@ More sample can refer to below sites:
 
 * **DATETIME** `String` the Date date type. If declare `DATETIME`, then the type of this attribute will be `Date`.
 
+* **BOOL** `String` the Bool date type. 
+
 ### Migration
 
 * **@createTable**: `function(tableName, callback)` create the database table
