@@ -73,11 +73,11 @@ class ModelBaseMixin extends Mixin
       get: ->
         val = this[key] ? defaultVal
         val = operator.get(val) if operator
-        val = getHook(val) if getHook
+        val = getHook.call(this, val) if getHook
         val
       set: (val) ->
         val ?= null
-        val = setHook(val) if setHook
+        val = setHook.call(this, val) if setHook
         val = operator.set(val) if operator
         unless this[key] is val
           this[key] = val

@@ -173,11 +173,11 @@ class ModelAssociation extends Mixin
     Object.defineProperty @prototype, as,
       get: ->
         val = this[key] ? null
-        val = getHook(val) if getHook
+        val = getHook.call(this, val) if getHook
         val
       set: (val) ->
         origin = this[key]
-        val = setHook(val) if setHook
+        val = setHook.call(this, val) if setHook
         unless val is origin
           setBelongsTo(opts, this, val ? null)
           if handler
@@ -244,11 +244,11 @@ class ModelAssociation extends Mixin
     Object.defineProperty @prototype, opts.as,
       get: ->
         val = this[key] ? null
-        val = getHook(val) if getHook
+        val = getHook.call(this, val) if getHook
         val
       set: (val) ->
         origin = this[key]
-        val = setHook(val) if setHook
+        val = setHook.call(this, val) if setHook
         unless val is origin
           handler.remove(origin, null) if origin
           this[key] = val ? null
