@@ -31,7 +31,7 @@ describe 'ModelBaseMixin', ->
         t.addColumn 'isGood', 'BOOL'
 
       @$emailHook:
-        get: (email) -> email.toUpperCase()
+        getVal: (email) -> email.toUpperCase()
         set: (email) ->
 
     FakeModel.models.FakeModel.should.equal FakeModel

@@ -42,29 +42,46 @@ class ModelBaseMixin extends Mixin
     for operator in [boolOperator, dateOperator]
       return operator if operator.capture(opts)
 
-  getHook = (name) ->
+  @_getHook: (name) ->
     hookName = "$#{name}Hook"
     hookObj = this[hookName]
+    return [] unless hookObj
     if hookObj instanceof Function
       hookObj = {get: hookObj}
-    hookObj
+    {set, setVal, get, getVal} = hookObj
+    if set and setVal
+      setFunc = (val) -> set(val); setVal(val)
+    else if set
+      setFunc = (val) -> set(val); val
+    else if setVal
+      set = (val) -> setVal(val)
+
+    if get and getVal
+      getFunc = (val) -> get(val); getVal(val)
+    else if get
+      getFunc = (val) -> get(val); val
+    else if getVal
+      getFunc = (val) -> getVal(val)
+    [setFunc, getFunc]
 
   @defineAttr: (name, opts) ->
     key = '_' + name
     defaultVal = opts.default ? null
     operator = getOperator(opts)
-    hookFunc = getHook.call(this, name)
+    [setHook, getHook] = @_getHook(name)
     Object.defineProperty @prototype, name,
       get: ->
         val = this[key] ? defaultVal
         val = operator.get(val) if operator
-        val = hookFunc.get(val) or val if hookFunc? and hookFunc.get?
+        val = getHook(val) if getHook
         val
       set: (val) ->
+        val ?= null
+        val = setHook(val) if setHook
         val = operator.set(val) if operator
-        val = hookFunc.set(val) or val if hookFunc? and hookFunc.set?
-        this[key] = val
-        @changeFields[name] = val
+        unless this[key] is val
+          this[key] = val
+          @changeFields[name] = val
 
   # apply tableInfo's attributes into the Model's prototype,
   # so that the model has the db column variables

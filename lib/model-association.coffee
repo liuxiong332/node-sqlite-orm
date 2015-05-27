@@ -166,16 +166,23 @@ class ModelAssociation extends Mixin
     createVirtualHasManyBelongsTo(Model, opts)
 
   @extendBelongsTo: (opts, handler) ->
-    key = privateName(opts.as)
+    as = opts.as
+    key = privateName(as)
     handler ?= getHandlerForHasAssos(this, opts)
-    Object.defineProperty @prototype, opts.as,
-      get: -> this[key] ? null
+    [setHook, getHook] = @_getHook(as)
+    Object.defineProperty @prototype, as,
+      get: ->
+        val = this[key] ? null
+        val = getHook(val) if getHook
+        val
       set: (val) ->
         origin = this[key]
-        setBelongsTo(opts, this, val)
-        if handler
-          handler.remove(origin, this) if origin
-          handler.add(val, this) if val
+        val = setHook(val) if setHook
+        unless val is origin
+          setBelongsTo(opts, this, val ? null)
+          if handler
+            handler.remove(origin, this) if origin
+            handler.add(val, this) if val
 
   _watchHasManyChange = (change, val, handler) ->
     if change.type is 'update'
@@ -201,7 +208,7 @@ class ModelAssociation extends Mixin
       val = this[key] = new ObserverArray (changes) =>
         for change in changes
           _watchHasManyChange.call(this, change, val, handler)
-      val.observe()
+      # val.observe()
     val
 
   @extendHasMany: (opts, handler) ->
@@ -233,13 +240,19 @@ class ModelAssociation extends Mixin
   @extendHasOne: (opts) ->
     handler = getHandlerInBelongsAssos(this, opts)
     key = privateName(opts.as)
+    [setHook, getHook] = @_getHook(opts.as)
     Object.defineProperty @prototype, opts.as,
-      get: -> this[key] ? null
+      get: ->
+        val = this[key] ? null
+        val = getHook(val) if getHook
+        val
       set: (val) ->
         origin = this[key]
-        handler.remove(origin, null) if origin
-        this[key] = val
-        handler.add(val, this) if val
+        val = setHook(val) if setHook
+        unless val is origin
+          handler.remove(origin, null) if origin
+          this[key] = val ? null
+          handler.add(val, this) if val
 
   @loadAssos: (model) ->
     Q.all [

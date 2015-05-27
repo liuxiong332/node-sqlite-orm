@@ -2,11 +2,7 @@ module.exports =
 class ObserverArray
   constructor: (@observeFunc) ->
     @list = []
-    @inObserve = false
-
-  observe: -> @inObserve = true
-
-  unobserve: -> @inObserve = false
+    @inObserve = true
 
   scopeUnobserve: (callback) ->
     origin = @inObserve
