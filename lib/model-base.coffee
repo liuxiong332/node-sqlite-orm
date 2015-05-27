@@ -50,18 +50,18 @@ class ModelBaseMixin extends Mixin
       hookObj = {get: hookObj}
     {set, setVal, get, getVal} = hookObj
     if set and setVal
-      setFunc = (val) -> set(val); setVal(val)
+      setFunc = (val) -> set.call(this, val); setVal.call(this, val)
     else if set
-      setFunc = (val) -> set(val); val
+      setFunc = (val) -> set.call(this, val); val
     else if setVal
-      set = (val) -> setVal(val)
+      set = (val) -> setVal.call(this, val)
 
     if get and getVal
-      getFunc = (val) -> get(val); getVal(val)
+      getFunc = (val) -> get.call(this, val); getVal.call(this, val)
     else if get
-      getFunc = (val) -> get(val); val
+      getFunc = (val) -> get.call(this, val); val
     else if getVal
-      getFunc = (val) -> getVal(val)
+      getFunc = (val) -> getVal.call(this, val)
     [setFunc, getFunc]
 
   @defineAttr: (name, opts) ->
