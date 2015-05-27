@@ -78,13 +78,13 @@ class ModelAssociation extends Mixin
 
   removeFromHasMany = (as, parent, child) ->
     children = parent[as]
-    children.scopeUnobserve ->
+    children._scopeUnobserve ->
       index = children.indexOf(child)
       children.splice(index, 1) if index isnt -1
 
   addIntoHasMany = (as, parent, child) ->
     children = parent[as]
-    children.scopeUnobserve -> children.push(child)
+    children._scopeUnobserve -> children.push(child)
 
   hasAssosHandler = (as) ->
     remove: removeFromHasMany.bind(null, as)
@@ -292,7 +292,7 @@ class ModelAssociation extends Mixin
         if opts.remoteVirtual
           members.splice(0, 0, children...)
         else
-          members.scopeUnobserve -> members.splice(0, 0, children...)
+          members._scopeUnobserve -> members.splice(0, 0, children...)
     Q.all promises
 
   @loadHasManyBelongsTo: (model) ->
@@ -313,7 +313,7 @@ class ModelAssociation extends Mixin
           if opts.remoteVirtual
             members.splice(0, 0, targets...)
           else
-            members.scopeUnobserve -> members.splice(0, 0, targets...)
+            members._scopeUnobserve -> members.splice(0, 0, targets...)
     Q.all promises
 
   destroyAssos: ->

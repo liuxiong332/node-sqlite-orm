@@ -3,30 +3,40 @@ class ObserverArray
   constructor: (@observeFunc) ->
     @list = []
     @inObserve = true
+    @observers = []
 
-  scopeUnobserve: (callback) ->
+  _scopeUnobserve: (callback) ->
     origin = @inObserve
     @inObserve = false
     callback()
     @inObserve = origin
 
+  observe: (func) ->
+    @observers.push func
+
+  unobserve: (func) ->
+    @observers.splice(@observers.indexOf(func), 1)
+
   set: (index, value) ->
     list = @list
     oldValue = list[index]
     list[index] = value
-    if @inObserve
-      @observeFunc [{name: index, type: 'update', oldValue}]
+    if @inObserve or @observers.length > 0
+      change = {name: index, type: 'update', oldValue}
+      @observeFunc [change] if @inObserve
+      obs(change) for obs in @observers
 
   get: (index) -> @list[index]
 
   splice: (start, removeCount, insertItems...) ->
     removed = @list.splice(start, removeCount, insertItems...)
 
-    if @inObserve
+    if @inObserve or @observers.length > 0
       change =
         type: 'splice', index: start, removed: removed
         addedCount: insertItems.length
-      @observeFunc [change]
+      @observeFunc([change]) if @inObserve
+      obs(change) for obs in @observers
     removed
 
   clear: ->
