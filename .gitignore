@@ -1,5 +1,5 @@
 node_modules/
-temp/
+spec/temp/*.db
 coverage/
 dist/
 npm-debug.log
