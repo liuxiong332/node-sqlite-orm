@@ -17,7 +17,7 @@ class MapperRunner
       done()
     .catch(done)
 
-describe 'ModelBaseMixin', ->
+describe.skip 'ModelBaseMixin', ->
   [runner, FakeModel] = []
 
   beforeEach (done) ->

@@ -19,66 +19,15 @@ class ModelBaseMixin extends Mixin
     ModelBaseMixin.models[this._name] = this
     @_initAssos()
 
-  dateOperator =
-    capture: (opts) ->
-      if opts.type is 'DATETIME'
-        opts.type = 'INTEGER'
-        true
-    set: (val) ->
-      if val instanceof Date then val.getTime() else val
-    get: (val) -> new Date(val)
-
-  boolOperator =
-    capture: (opts) ->
-      if opts.type is 'BOOL'
-        opts.type = 'INTEGER'
-        true
-    set: (val) ->
-      if val then 1 else 0
-    get: (val) ->
-      if val is 1 then true else false
-
-  getOperator = (opts) ->
-    for operator in [boolOperator, dateOperator]
-      return operator if operator.capture(opts)
-
-  @_getHook: (name) ->
-    hookName = "$#{name}Hook"
-    hookObj = this[hookName]
-    return [] unless hookObj
-    if hookObj instanceof Function
-      hookObj = {get: hookObj}
-    {set, setVal, get, getVal} = hookObj
-    if set and setVal
-      setFunc = (val) -> set.call(this, val); setVal.call(this, val)
-    else if set
-      setFunc = (val) -> set.call(this, val); val
-    else if setVal
-      set = (val) -> setVal.call(this, val)
-
-    if get and getVal
-      getFunc = (val) -> get.call(this, val); getVal.call(this, val)
-    else if get
-      getFunc = (val) -> get.call(this, val); val
-    else if getVal
-      getFunc = (val) -> getVal.call(this, val)
-    [setFunc, getFunc]
-
   @defineAttr: (name, opts) ->
     key = '_' + name
     defaultVal = opts.default ? null
-    operator = getOperator(opts)
-    [setHook, getHook] = @_getHook(name)
     Object.defineProperty @prototype, name,
       get: ->
         val = this[key] ? defaultVal
-        val = operator.get(val) if operator
-        val = getHook.call(this, val) if getHook
         val
       set: (val) ->
         val ?= null
-        val = setHook.call(this, val) if setHook
-        val = operator.set(val) if operator
         unless this[key] is val
           this[key] = val
           @changeFields[name] = val

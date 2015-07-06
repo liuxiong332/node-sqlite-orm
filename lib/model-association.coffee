@@ -169,15 +169,10 @@ class ModelAssociation extends Mixin
     as = opts.as
     key = privateName(as)
     handler ?= getHandlerForHasAssos(this, opts)
-    [setHook, getHook] = @_getHook(as)
     Object.defineProperty @prototype, as,
-      get: ->
-        val = this[key] ? null
-        val = getHook.call(this, val) if getHook
-        val
+      get: -> this[key] ? null
       set: (val) ->
         origin = this[key]
-        val = setHook.call(this, val) if setHook
         unless val is origin
           setBelongsTo(opts, this, val ? null)
           if handler
@@ -240,15 +235,10 @@ class ModelAssociation extends Mixin
   @extendHasOne: (opts) ->
     handler = getHandlerInBelongsAssos(this, opts)
     key = privateName(opts.as)
-    [setHook, getHook] = @_getHook(opts.as)
     Object.defineProperty @prototype, opts.as,
-      get: ->
-        val = this[key] ? null
-        val = getHook.call(this, val) if getHook
-        val
+      get: -> this[key] ? null
       set: (val) ->
         origin = this[key]
-        val = setHook.call(this, val) if setHook
         unless val is origin
           handler.remove(origin, null) if origin
           this[key] = val ? null
