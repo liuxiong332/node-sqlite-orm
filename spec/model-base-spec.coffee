@@ -124,7 +124,7 @@ describe 'ModelBaseMixin basic association', ->
     child.name = 'hello'
     nameSpy.called.should.true
 
-  it.only 'change extendTo and hasOne attribute to emit', (done) ->
+  it 'change extendTo and hasOne attribute to emit', (done) ->
     parent = new ParentModel name: 'parent'
     child = new ChildModel name: 'child'
     parentModelSpy = sinon.spy()
@@ -139,6 +139,23 @@ describe 'ModelBaseMixin basic association', ->
       parent.childModel = null
       parentModelSpy.callCount.should.equal 2
       childModelSpy.callCount.should.equal 2
+      done()
+    .catch done
+
+  it 'change extendTo and hasMany attribute to emit', (done) ->
+    parent = new ParentModel name: 'parent'
+    some = new SomeModel name: 'some'
+    parentModelSpy = sinon.spy()
+    someModelsSpy = sinon.spy()
+    some.on 'parentModel', parentModelSpy
+    parent.on 'someModels', someModelsSpy
+    Q.all [some.save(), parent.save()]
+    .then ->
+      some.parentModel = parent
+      parentModelSpy.calledOnce.should.true
+      someModelsSpy.calledOnce.should.true
+      parent.someModels.splice(0, 1)
+      someModelsSpy.callCount.should.equal 2
       done()
     .catch done
 
