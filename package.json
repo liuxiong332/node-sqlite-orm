@@ -1,7 +1,7 @@
 {
   "name": "sqlite-orm",
   "description": "the ORM framework for sqlite",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "homepage": "https://github.com/liuxiong332/node-sqlite-orm",
   "bugs": "https://github.com/liuxiong332/node-sqlite-orm/issues",
   "license": "MIT",

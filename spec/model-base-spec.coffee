@@ -357,7 +357,7 @@ describe 'ModelBaseMixin in hasManyBelongsTo association', ->
 
   afterEach (done) -> runner.stop(done)
 
-  it.only 'change attribute to emit', (done) ->
+  it 'change attribute to emit', (done) ->
     src = new Source name: 'Source'
     target = new Target name: 'Target'
     targetsSpy = sinon.spy()
