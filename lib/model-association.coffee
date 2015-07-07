@@ -120,7 +120,7 @@ class ModelAssociation extends Mixin
     remove: removeFromHasManyEmit.bind(null, as)
     add: addIntoHasManyEmit.bind(null, as)
 
-  hasManyBelongsToAssosHandler = (opts, targetOpts) ->
+  hasManyBelongsToAssosHandler = (opts, targetOpts, needEmit) ->
     MidModel = ModelBase.models[opts.midTableName]
     st = opts.sourceThrough
     tt = opts.targetThrough
@@ -132,13 +132,19 @@ class ModelAssociation extends Mixin
       "#{tt}": target[targetKeyName]
 
     add: (target, source) ->
-      addIntoHasMany(targetOpts.as, target, source)
+      if needEmit
+        addIntoHasManyEmit(targetOpts.as, target, source)
+      else
+        addIntoHasMany(targetOpts.as, target, source)
       MidModel.create getWhere(target, source)
       .then (midModel) ->
         opts.midModel = targetOpts.midModel = midModel
 
     remove: (target, source) ->
-      removeFromHasMany(targetOpts.as, target, source)
+      if needEmit
+        removeFromHasManyEmit(targetOpts.as, target, source)
+      else
+        removeFromHasMany(targetOpts.as, target, source)
       if opts.midModel
         opts.midModel.destroy()
       else
@@ -188,13 +194,13 @@ class ModelAssociation extends Mixin
         midTableName: opts.midTableName
         virtual: true, Target: Model
       Target.hasManyBelongsTo(Model, targetOpts)
-      targetHandler = hasManyBelongsToAssosHandler(targetOpts, opts)
+      targetHandler = hasManyBelongsToAssosHandler(targetOpts, opts, true)
       Target.extendHasManyBelongsTo targetOpts, targetHandler
       hasManyBelongsToAssosHandler(opts, targetOpts)
 
     for targetOpts in Target.hasManyBelongsToAssos
       if compareTargetOpts(targetOpts)
-        return hasManyBelongsToAssosHandler(opts, targetOpts)
+        return hasManyBelongsToAssosHandler(opts, targetOpts, true)
     createVirtualHasManyBelongsTo(Model, opts)
 
   @extendBelongsTo: (opts, handler) ->

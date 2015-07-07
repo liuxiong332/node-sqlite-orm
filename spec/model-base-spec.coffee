@@ -357,6 +357,18 @@ describe 'ModelBaseMixin in hasManyBelongsTo association', ->
 
   afterEach (done) -> runner.stop(done)
 
+  it.only 'change attribute to emit', (done) ->
+    src = new Source name: 'Source'
+    target = new Target name: 'Target'
+    targetsSpy = sinon.spy()
+    src.on 'targets', targetsSpy
+    Q.all [src.save, target.save()]
+    .then ->
+      src.targets.push(target)
+      targetsSpy.calledOnce.should.true
+      done()
+    .catch done
+
   it 'hasManyBelongsTo', (done) ->
     src = new Source name: 'Source'
     target = new Target name: 'Target'
