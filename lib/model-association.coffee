@@ -41,7 +41,7 @@ class ModelAssociation extends Mixin
     setBelongsToEmit = (child, parent) ->
       originVal = child[opts.as]
       setBelongsTo(opts, child, parent)
-      child.emitter.emit opts.as, {oldValue: originVal}
+      child._modelEmitter.emit opts.as, {oldValue: originVal}
     add: (child, parent) -> setBelongsToEmit(child, parent)
     remove: (child, parent) -> setBelongsToEmit(child, null)
 
@@ -98,7 +98,8 @@ class ModelAssociation extends Mixin
       index = children.indexOf(child)
       if index isnt -1
         removed = children.splice(index, 1)
-        parent.emitter.emit as, {type: 'splice', index, removed, removeCount: 0}
+        parent._modelEmitter.emit as,
+          {type: 'splice', index, removed, removeCount: 0}
 
   addIntoHasMany = (as, parent, child) ->
     children = parent[as]
@@ -109,7 +110,7 @@ class ModelAssociation extends Mixin
     children._scopeUnobserve ->
       index = children.length
       children.push(child)
-      parent.emitter.emit as,
+      parent._modelEmitter.emit as,
         {type: 'splice', index, removed: [], removeCount: 0}
 
   hasAssosHandler = (as) ->
@@ -159,7 +160,7 @@ class ModelAssociation extends Mixin
             name = parentOpts.as
             originVal = parent[name]
             parent[privateName(name)] = child
-            parent.emitter.emit name, {oldValue: originVal}
+            parent._modelEmitter.emit name, {oldValue: originVal}
           return {remove: changeHandler, add: changeHandler}
 
     getHandlerFromHasMany = (Model) ->
@@ -212,7 +213,7 @@ class ModelAssociation extends Mixin
       set: (val) ->
         origin = this[key]
         unless val is origin
-          @emitter.emit as, {oldValue: origin}
+          @_modelEmitter.emit as, {oldValue: origin}
           setBelongsTo(opts, this, val ? null)
           if handler
             handler.remove(origin, this) if origin
@@ -242,7 +243,7 @@ class ModelAssociation extends Mixin
       val = this[key] = new ObserverArray (changes) =>
         for change in changes
           _watchHasManyChange.call(this, change, val, handler)
-          @emitter.emit(name, change)
+          @_modelEmitter.emit(name, change)
     val
 
   @extendHasMany: (opts, handler) ->
@@ -279,7 +280,7 @@ class ModelAssociation extends Mixin
       set: (val) ->
         origin = this[key]
         unless val is origin
-          @emitter.emit opts.as, {oldValue: origin}
+          @_modelEmitter.emit opts.as, {oldValue: origin}
           handler.remove(origin, null) if origin
           this[key] = val ? null
           handler.add(val, this) if val

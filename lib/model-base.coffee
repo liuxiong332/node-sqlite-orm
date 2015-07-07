@@ -10,7 +10,7 @@ class ModelBaseMixin extends Mixin
   @models = {}
 
   initModel: (params) ->
-    @emitter = new Emitter
+    @_modelEmitter = new Emitter
     @isInsert = false
     @changeFields = {}
     @query = @constructor.query
@@ -34,7 +34,7 @@ class ModelBaseMixin extends Mixin
         val ?= null
         savedVal = if to then to.call(interpreter, val) else val
         unless this[key] is savedVal
-          @emitter.emit name, {oldValue: this[name]}
+          @_modelEmitter.emit name, {oldValue: this[name]}
           @changeFields[name] = savedVal
           this[key] = savedVal
 
@@ -88,7 +88,7 @@ class ModelBaseMixin extends Mixin
       opts = null
     @query.selectEach(@tableName, @wrapWhere(where), opts, step)
 
-  on: (name, callback) -> @emitter.on(name, callback)
+  on: (name, callback) -> @_modelEmitter.on(name, callback)
 
   save: ->
     Constructor = @constructor
