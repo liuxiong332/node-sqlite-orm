@@ -30,10 +30,6 @@ describe 'ModelBaseMixin', ->
         t.addColumn 'date', 'DATETIME'
         t.addColumn 'isGood', 'BOOL'
 
-      @$emailHook:
-        getVal: (email) -> email.toUpperCase()
-        set: (email) ->
-
     FakeModel.models.FakeModel.should.equal FakeModel
     runner = new MapperRunner
     runner.start(done)

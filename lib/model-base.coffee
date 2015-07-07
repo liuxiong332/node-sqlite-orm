@@ -1,6 +1,7 @@
 Mixin = require 'mixto'
 _ = require 'underscore'
 Q = require 'q'
+{Emitter} = require 'event-kit'
 ModelAssociation = require './model-association'
 
 module.exports =
@@ -9,6 +10,7 @@ class ModelBaseMixin extends Mixin
   @models = {}
 
   initModel: (params) ->
+    @emitter = new Emitter
     @isInsert = false
     @changeFields = {}
     @query = @constructor.query
@@ -30,10 +32,11 @@ class ModelBaseMixin extends Mixin
         if from then from.call(interpreter, val) else val
       set: (val) ->
         val ?= null
-        if to then val = to.call(interpreter, val)
-        unless this[key] is val
-          @changeFields[name] = val
-          this[key] = val
+        savedVal = if to then to.call(interpreter, val) else val
+        unless this[key] is savedVal
+          @emitter.emit name, {oldValue: this[name]}
+          @changeFields[name] = savedVal
+          this[key] = savedVal
 
   # apply tableInfo's attributes into the Model's prototype,
   # so that the model has the db column variables

@@ -174,6 +174,7 @@ class ModelAssociation extends Mixin
       set: (val) ->
         origin = this[key]
         unless val is origin
+          @emitter.emit as, {oldValue: origin}
           setBelongsTo(opts, this, val ? null)
           if handler
             handler.remove(origin, this) if origin
@@ -198,19 +199,19 @@ class ModelAssociation extends Mixin
     opts.Target = @_getModel(ChildModel)
     @hasManyAssos.push opts
 
-  arrayGetter = (key, handler) ->
+  createObserverArray: (name, key, handler) ->
     unless (val = this[key])?
       val = this[key] = new ObserverArray (changes) =>
         for change in changes
           _watchHasManyChange.call(this, change, val, handler)
-      # val.observe()
+          @emitter.emit(name, change)
     val
 
   @extendHasMany: (opts, handler) ->
     handler ?= getHandlerInBelongsAssos(this, opts)
     key = privateName(opts.as)
     Object.defineProperty @prototype, opts.as, get: ->
-      arrayGetter.call(this, key, handler)
+      @createObserverArray(opts.as, key, handler)
 
   @hasManyBelongsTo: (TargetModel, opts={}) ->
     opts.midTableName ?= this._name + TargetModel._name
@@ -224,7 +225,7 @@ class ModelAssociation extends Mixin
     handler ?= getHandlerForHasBelongsAssos(this, opts)
     key = privateName(opts.as)
     Object.defineProperty @prototype, opts.as, get: ->
-      arrayGetter.call(this, key, handler)
+      @createObserverArray(opts.as, key, handler)
 
   @hasOne: (ChildModel, opts={}) ->
     opts.through ?= defaultThrough(this)
@@ -240,6 +241,7 @@ class ModelAssociation extends Mixin
       set: (val) ->
         origin = this[key]
         unless val is origin
+          @emitter.emit opts.as, {oldValue: origin}
           handler.remove(origin, null) if origin
           this[key] = val ? null
           handler.add(val, this) if val
