@@ -3,6 +3,7 @@ Mapper = require '../lib/mapper'
 Migration = require '../lib/migration'
 path = require 'path'
 Q = require 'q'
+sinon = require 'sinon'
 
 class MapperRunner
   start: (done) ->
@@ -114,6 +115,32 @@ describe 'ModelBaseMixin basic association', ->
     runner.start(done)
 
   afterEach (done) -> runner.stop(done)
+
+  it 'change the attribute to emit', ->
+    child = new ChildModel name: 'child'
+    nameSpy = sinon.spy (change) ->
+      change.oldValue.should.equal 'child'
+    child.on 'name', nameSpy
+    child.name = 'hello'
+    nameSpy.called.should.true
+
+  it.only 'change extendTo and hasOne attribute to emit', (done) ->
+    parent = new ParentModel name: 'parent'
+    child = new ChildModel name: 'child'
+    parentModelSpy = sinon.spy()
+    childModelSpy = sinon.spy()
+    child.on 'parentModel', parentModelSpy
+    parent.on 'childModel', childModelSpy
+    Q.all [child.save(), parent.save()]
+    .then ->
+      child.parentModel = parent
+      parentModelSpy.calledOnce.should.true
+      childModelSpy.calledOnce.should.true
+      parent.childModel = null
+      parentModelSpy.callCount.should.equal 2
+      childModelSpy.callCount.should.equal 2
+      done()
+    .catch done
 
   it 'belongsTo', (done) ->
     child = new ChildModel name: 'child'

@@ -88,6 +88,8 @@ class ModelBaseMixin extends Mixin
       opts = null
     @query.selectEach(@tableName, @wrapWhere(where), opts, step)
 
+  on: (name, callback) -> @emitter.on(name, callback)
+
   save: ->
     Constructor = @constructor
     keyName = Constructor.primaryKeyName

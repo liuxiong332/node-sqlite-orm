@@ -3,6 +3,8 @@ Q = require 'q'
 ObserverArray = require './observer-array'
 _ = require 'underscore'
 
+# Virtual Association is used to keep the association consistent such as when
+# the child model destroy to notify the parent model delete the destroyed child.
 module.exports =
 class ModelAssociation extends Mixin
   @_initAssos: ->
@@ -35,6 +37,14 @@ class ModelAssociation extends Mixin
         throw new Error("parent is invalid, you may need insert to DB first")
     child[childOpts.through] = primaryVal
 
+  belongsToEmitHandler = (opts) ->
+    setBelongsToEmit = (child, parent) ->
+      originVal = child[opts.as]
+      setBelongsTo(opts, child, parent)
+      child.emitter.emit opts.as, {oldValue: originVal}
+    add: (child, parent) -> setBelongsToEmit(child, parent)
+    remove: (child, parent) -> setBelongsToEmit(child, null)
+
   belongsToHandler = (opts) ->
     add: (child, parent) -> setBelongsTo(opts, child, parent)
     remove: (child, parent) -> setBelongsTo(opts, child, null)
@@ -47,14 +57,14 @@ class ModelAssociation extends Mixin
       through: parentOpts.through
       as: "@#{ChildModel.counter++}", virtual: true, Target: Model
     ChildModel.belongsTo(Model, opts)
-    ChildModel.extendBelongsTo(opts, hasAssosHandler(parentOpts.as))
+    ChildModel.extendBelongsTo(opts, hasAssosEmitHandler(parentOpts.as))
     belongsToHandler(opts)
 
   getHandlerInBelongsAssos = (Model, parentOpts) ->
     ChildModel = parentOpts.Target
     for childOpts in ChildModel.belongsToAssos when childOpts.Target is Model
       if childOpts.through is parentOpts.through
-        return belongsToHandler(childOpts)
+        return belongsToEmitHandler(childOpts)
     return createVirtualBelongsTo(Model, parentOpts)
 
   camelCase = (str) -> str[0].toLowerCase() + str[1..]
@@ -82,13 +92,33 @@ class ModelAssociation extends Mixin
       index = children.indexOf(child)
       children.splice(index, 1) if index isnt -1
 
+  removeFromHasManyEmit = (as, parent, child) ->
+    children = parent[as]
+    children._scopeUnobserve ->
+      index = children.indexOf(child)
+      if index isnt -1
+        removed = children.splice(index, 1)
+        parent.emitter.emit as, {type: 'splice', index, removed, removeCount: 0}
+
   addIntoHasMany = (as, parent, child) ->
     children = parent[as]
     children._scopeUnobserve -> children.push(child)
 
+  addIntoHasManyEmit = (as, parent, child) ->
+    children = parent[as]
+    children._scopeUnobserve ->
+      index = children.length
+      children.push(child)
+      parent.emitter.emit as,
+        {type: 'splice', index, removed: [], removeCount: 0}
+
   hasAssosHandler = (as) ->
     remove: removeFromHasMany.bind(null, as)
     add: addIntoHasMany.bind(null, as)
+
+  hasAssosEmitHandler = (as) ->
+    remove: removeFromHasManyEmit.bind(null, as)
+    add: addIntoHasManyEmit.bind(null, as)
 
   hasManyBelongsToAssosHandler = (opts, targetOpts) ->
     MidModel = ModelBase.models[opts.midTableName]
@@ -120,13 +150,16 @@ class ModelAssociation extends Mixin
       for parentOpts in ParentModel.hasOneAssos
         if parentOpts.Target is Model and opts.through is parentOpts.through
           changeHandler = (parent, child) ->
-            parent[privateName(parentOpts.as)] = child
+            name = parentOpts.as
+            originVal = parent[name]
+            parent[privateName(name)] = child
+            parent.emitter.emit name, {oldValue: originVal}
           return {remove: changeHandler, add: changeHandler}
 
     getHandlerFromHasMany = (Model) ->
       for parentOpts in ParentModel.hasManyAssos
         if parentOpts.Target is Model and opts.through is parentOpts.through
-          return hasAssosHandler(parentOpts.as)
+          return hasAssosEmitHandler(parentOpts.as)
 
     createVirtualHasMany = (Model, childOpts) ->
       childOpts.remoteVirtual = true
@@ -134,11 +167,10 @@ class ModelAssociation extends Mixin
         as: "@#{ParentModel.counter++}"
         through: childOpts.through, virtual: true, Target: Model
       ParentModel.hasMany(Model, opts)
-      ParentModel.extendHasMany opts, belongsToHandler(childOpts)
+      ParentModel.extendHasMany opts, belongsToEmitHandler(childOpts)
       hasAssosHandler(opts.as)
 
-    getHandlerFromHasOne(Model) or
-    getHandlerFromHasMany(Model) or
+    getHandlerFromHasOne(Model) or getHandlerFromHasMany(Model) or
     createVirtualHasMany(Model, opts)
 
   getHandlerForHasBelongsAssos = (Model, opts) ->
