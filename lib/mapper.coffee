@@ -18,6 +18,8 @@ class Mapper
   constructor: (@fileName, opts={}) ->
     @db = null
     @cache = new Cache maxSize: opts.maxCacheSize
+    @interpreters = {}
+    @initInterpreters()
 
   getDB: ->
     defer = Q.defer()
@@ -45,7 +47,8 @@ class Mapper
         # extend the model class's attributes
         getModel(tableName).extendModel this, tableInfo
         # create the database table
-        @query.createTable(tableName, tableInfo.attributes).then =>
+        attributes = tableInfo.attributes
+        @query.createTable(tableName, attributes, @interpreters).then =>
           promises = for indexName, column of tableInfo.indexes
             @query.createIndex(tableName, indexName, column)
           Q.all promises
@@ -53,6 +56,19 @@ class Mapper
       Q.all(createPromises).then ->
         Model.initAssos?() for name, Model of ModelBase.models
         Model.extendAssos() for name, Model of ModelBase.models
+
+  registerDataTypeInterpreter: (dataType, interpreter) ->
+    @interpreters[dataType] = interpreter
+
+  getInterpreter: (dataType) -> @interpreters[dataType]
+
+  initInterpreters: ->
+    @registerDataTypeInterpreter 'DATETIME',
+      from: (val) -> new Date(val)
+      to: (val) -> val.getTime()
+    @registerDataTypeInterpreter 'BOOL',
+      from: (val) -> val isnt 0
+      to: (val) -> if val then 1 else 0
 
   beginTransaction: -> @query.beginTransaction()
 

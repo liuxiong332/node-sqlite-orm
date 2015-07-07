@@ -22,15 +22,18 @@ class ModelBaseMixin extends Mixin
   @defineAttr: (name, opts) ->
     key = '_' + name
     defaultVal = opts.default ? null
+    interpreter = @mapper.getInterpreter(opts.type)
+    {from, to} = interpreter if interpreter
     Object.defineProperty @prototype, name,
       get: ->
         val = this[key] ? defaultVal
-        val
+        if from then from.call(interpreter, val) else val
       set: (val) ->
         val ?= null
+        if to then val = to.call(interpreter, val)
         unless this[key] is val
-          this[key] = val
           @changeFields[name] = val
+          this[key] = val
 
   # apply tableInfo's attributes into the Model's prototype,
   # so that the model has the db column variables

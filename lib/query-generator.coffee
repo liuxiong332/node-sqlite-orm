@@ -2,14 +2,16 @@ _ = require 'underscore'
 
 module.exports =
 class QueryGenerator
-  @createTableStmt: (tableName, attributes) ->
+  @createTableStmt: (tableName, attributes, interpreter) ->
     columnDefs = for colName, opts of attributes
-      @columnDef(colName, opts)
+      @columnDef(colName, opts, interpreter)
     "CREATE TABLE IF NOT EXISTS #{@wrapName(tableName)} (#{columnDefs})"
 
-  @columnDef: (name, opts) ->
+  @columnDef: (name, opts, interpreter) ->
     return "#{@wrapName(name)} #{opts}" if _.isString(opts)
-    template = "#{@wrapName(name)} #{opts.type}"
+    type = opts.type
+    if interpreter?[type] then type = interpreter[type]
+    template = "#{@wrapName(name)} #{type}"
 
     if opts.primaryKey is true
       template += ' PRIMARY KEY'

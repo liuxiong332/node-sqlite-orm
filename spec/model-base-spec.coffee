@@ -17,7 +17,7 @@ class MapperRunner
       done()
     .catch(done)
 
-describe.skip 'ModelBaseMixin', ->
+describe 'ModelBaseMixin', ->
   [runner, FakeModel] = []
 
   beforeEach (done) ->
@@ -50,7 +50,7 @@ describe.skip 'ModelBaseMixin', ->
     FakeModel.create({name: 'hello', email: 'hello@xx.xx', date: date, isGood: true})
     .then (model) ->
       model.name.should.equal 'hello'
-      model.email.should.equal 'HELLO@XX.XX'
+      model.email.should.equal 'hello@xx.xx'
       model.date.getTime().should.equal date.getTime()
       model.isGood.should.equal true
       done()

@@ -5,8 +5,9 @@ module.exports =
 class Query
   constructor: (@db) ->
 
-  createTable: (tableName, attrs) ->
-    Q.ninvoke @db, 'run', QueryGenerator.createTableStmt(tableName, attrs)
+  createTable: (tableName, attrs, interpreter) ->
+    stmt = QueryGenerator.createTableStmt(tableName, attrs, interpreter)
+    Q.ninvoke @db, 'run', stmt
 
   insert: (tableName, fields) ->
     defer = Q.defer()
