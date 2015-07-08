@@ -99,7 +99,7 @@ class ModelAssociation extends Mixin
       if index isnt -1
         removed = children.splice(index, 1)
         parent._modelEmitter.emit as,
-          {type: 'splice', index, removed, removeCount: 0}
+          {type: 'splice', index, removed, addedCount: 0}
 
   addIntoHasMany = (as, parent, child) ->
     children = parent[as]
@@ -111,7 +111,7 @@ class ModelAssociation extends Mixin
       index = children.length
       children.push(child)
       parent._modelEmitter.emit as,
-        {type: 'splice', index, removed: [], removeCount: 0}
+        {type: 'splice', index, removed: [], addedCount: 0}
 
   hasAssosHandler = (as) ->
     remove: removeFromHasMany.bind(null, as)
