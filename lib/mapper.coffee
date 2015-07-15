@@ -77,7 +77,7 @@ class Mapper
   scopeTransaction: (callback) ->
     @query.beginTransaction()
     .then -> callback()
-    .then => @query.endTransaction()
+    .tap => @query.endTransaction()
 
   dropAllTables: ->
     Q.all (model.drop() for name, model of ModelBase.models)

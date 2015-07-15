@@ -1,9 +1,9 @@
 {
   "name": "sqlite-orm",
   "description": "the ORM framework for sqlite",
-  "version": "0.2.3",
-  "homepage": "https://github.com/liuxiong332/node-sqlite-orm",
-  "bugs": "https://github.com/liuxiong332/node-sqlite-orm/issues",
+  "version": "0.2.4",
+  "homepage": "https://github.com/xmail-client/node-sqlite-orm",
+  "bugs": "https://github.com/xmail-client/node-sqlite-orm/issues",
   "license": "MIT",
   "main": "dist/mapper.js",
   "author": {
@@ -12,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/liuxiong332/node-sqlite-orm"
+    "url": "https://github.com/xmail-client/node-sqlite-orm"
   },
   "files": [
     "dist"
